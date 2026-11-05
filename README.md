@@ -1,29 +1,103 @@
 # Календарь звонков
 
-
 [![hexlet-check](https://github.com/iriss22/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/iriss22/ai-for-developers-project-386/actions)
 
 Разработайте совместно с ИИ сервис для бронирования календаря
 
-Учебный проект Хекслета: https://ru.hexlet.io/programs/ai-for-developers
-Как это должно работать: https://files.hexlet.app/a/2ipc5m
+Учебный проект Хекслета: <https://ru.hexlet.io/programs/ai-for-developers>
+Как это должно работать: <https://files.hexlet.app/a/2ipc5m>
 
 ## Стек
 
-- Разное
+**Бэкенд** (`backend/`):
+
+- Java 25
+- Spring Boot 4.1 (Spring Web MVC, Validation, Actuator, DevTools)
+- Maven (через Maven Wrapper `mvnw`)
+- JUnit 5, MockMvc
+
+**Фронтенд** (`frontend/`):
+
+- TypeScript, React 19
+- Vite (dev-сервер и сборка)
+- Mantine (UI-компоненты)
+- Vitest, React Testing Library, jsdom (тесты)
+
+**Тулчейн и проверки качества** (подобраны по [dev-quality-gates](https://github.com/mokevnin/dev-quality-gates)):
+
+| Инструмент | Что проверяет | Конфиг |
+|---|---|---|
+| [mise](https://mise.jdx.dev) | версии Java, Node и всех инструментов, задачи проекта | `mise.toml` |
+| [hk](https://hk.jdx.dev) | запуск проверок в git-хуках и в CI | `hk.pkl` |
+| Spotless (google-java-format) | форматирование Java: стиль Google, отступ 2 пробела | `backend/pom.xml` |
+| Checkstyle | стиль Java-кода | `backend/config/checkstyle/checkstyle.xml` |
+| Error Prone | баг-паттерны Java при компиляции | `backend/pom.xml` |
+| oxlint | линтер TypeScript/React | `frontend/.oxlintrc.json` |
+| oxfmt | форматирование TypeScript/JSON | `frontend/.oxfmtrc.json` |
+| tsc | проверка типов | `frontend/tsconfig*.json` |
+| Knip | неиспользуемые файлы, экспорты и зависимости фронтенда | — |
+| Betterleaks | секреты в коде | — |
+| typos | опечатки в коде и документации | — |
+| rumdl | Markdown | `.rumdl.toml` |
+| jactionlint, ShellCheck | GitHub Actions workflows | — |
+| commitlint | сообщения коммитов в формате [Conventional Commits](https://www.conventionalcommits.org/ru/) | `.commitlintrc.json` |
+| Renovate | раз в неделю открывает PR с обновлениями зависимостей и инструментов | `renovate.json` |
+| [OSV-Scanner](https://google.github.io/osv-scanner/) | известные уязвимости в зависимостях (раз в неделю и при их изменении) | `.github/workflows/osv.yml` |
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Нужны только [mise](https://mise.jdx.dev/getting-started.html) и git. Java, Node.js и все линтеры mise поставит сам нужных версий.
 
 ```bash
 git clone https://github.com/iriss22/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+
+mise trust      # разрешить mise читать mise.toml этого проекта
+mise install    # Java, Node.js, hk и линтеры
+mise run setup  # npm-зависимости (корень и фронтенд) и git-хуки
 ```
+
+Переменные окружения пока не нужны. Настройки бэкенда лежат в `backend/src/main/resources/application.properties`.
 
 ## Использование
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+Основные команды (полный список — `mise tasks`):
+
+```bash
+mise run dev     # бэкенд :8080 и фронтенд :5173 параллельно, Ctrl+C останавливает оба
+mise run check   # все проверки: линтеры, типы, тесты, сборка
+mise run fix     # безопасные автоисправления: форматирование, пробелы, Markdown
+mise run lint    # только линтеры
+mise run test    # только тесты
+mise run build   # production-сборка фронтенда и jar бэкенда
+mise run audit   # известные уязвимости в зависимостях (OSV-Scanner)
+```
+
+Фронтенд открывается на <http://localhost:5173>. Vite проксирует запросы `/api/*` на бэкенд `http://localhost:8080`, поэтому из кода фронтенда достаточно писать `fetch('/api/...')`, CORS настраивать не нужно.
+
+Проверка бэкенда:
+
+```bash
+curl http://localhost:8080/
+# Greetings from Spring Boot!
+
+curl http://localhost:8080/actuator/health
+# {"groups":["liveness","readiness"],"status":"UP"}
+```
+
+Собранный jar запускается так:
+
+```bash
+java -jar backend/target/calendar-0.0.1-SNAPSHOT.jar
+```
+
+### Где запускаются проверки
+
+- **pre-commit** — быстрые проверки изменённых файлов: секреты, опечатки, Markdown, workflows, Spotless, oxfmt и oxlint. Форматирование исправляется автоматически.
+- **commit-msg** — commitlint проверяет сообщение коммита: `тип: описание`, например `feat: добавить выбор слота` или `fix(backend): …`. Типы: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore` и другие из Conventional Commits.
+- **pre-push** — проверки целиком тех частей проекта, которых касается push: типы и Knip на фронтенде, Checkstyle и Error Prone на бэкенде.
+- **CI** (`.github/workflows/ci.yml`) — на каждый push проверяет сообщения новых коммитов и выполняет `mise run check`, ту же команду, что и локально. Хук можно пропустить, CI — нет.
+- **По расписанию** (`.github/workflows/osv.yml`) — раз в неделю, а также при изменении `pom.xml` или lockfile'ов, `mise run audit` ищет известные уязвимости в зависимостях. В `check` эта проверка не входит: новые уязвимости появляются без изменений в коде и не должны блокировать несвязанную работу.
 
 ---
 

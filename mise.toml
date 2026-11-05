@@ -1,0 +1,110 @@
+# Единый тулчейн проекта: одни и те же версии у разработчиков и в CI.
+# Установка: `mise install`. Все проверки: `mise run check`.
+
+[tools]
+java = "temurin-25.0.5+8.0.LTS"
+node = "24.22.2"
+# git-хуки и проверки
+hk = "2.11.0"
+pkl = "0.32.2"
+# секреты, орфография, Markdown, GitHub Actions
+betterleaks = "1.9.0"
+typos = "1.51.1"
+rumdl = "0.3.2"
+jactionlint = "2.4.0"
+shellcheck = "0.11.0"
+# известные уязвимости в зависимостях (запускается по расписанию, не входит в check)
+osv-scanner = "2.7.0"
+
+[env]
+# git-хуки hk запускают инструменты через `mise x` с версиями из этого файла
+HK_MISE = "1"
+
+# ---------- установка ----------
+
+[tasks.setup]
+description = "Установить зависимости и git-хуки (один раз после клонирования)"
+depends = ["deps"]
+run = "hk install --mise"
+
+[tasks.deps]
+description = "Установить зависимости: инструменты репозитория (commitlint) и фронтенд"
+depends = ["deps:root", "deps:frontend"]
+
+[tasks."deps:root"]
+run = "npm ci"
+
+[tasks."deps:frontend"]
+dir = "frontend"
+run = "npm ci"
+
+# ---------- проверки ----------
+
+[tasks.check]
+description = "Все проверки: линтеры, типы, тесты, сборка. Эту же команду запускает CI"
+# последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/
+run = [
+  { task = "lint" },
+  { task = "test" },
+  { task = "build" },
+]
+
+[tasks.lint]
+description = "Все линтеры и форматтеры в режиме проверки (hk check --all)"
+run = "hk check --all"
+
+[tasks."lint:commits"]
+description = "Проверить сообщения коммитов (Conventional Commits): mise run lint:commits -- --from origin/main"
+run = "npx --no-install commitlint --verbose"
+
+[tasks.audit]
+description = "Известные уязвимости в зависимостях (OSV-Scanner). В CI запускается раз в неделю, а не в check"
+# Бэкенд проверяется по SBOM от Maven: в pom.xml версии наследуются из Spring Boot parent,
+# и OSV-Scanner их сам не разрешает. Файлы перечислены явно: при обходе `-r .` сканер
+# пропускает SBOM, потому что backend/target/ в .gitignore. Новый lockfile добавьте сюда.
+run = [
+  "cd backend && ./mvnw -q -B cyclonedx:makeBom",
+  "osv-scanner scan source backend/target/calendar.cdx.json package-lock.json frontend/package-lock.json",
+]
+
+[tasks.fix]
+description = "Безопасные автоисправления: форматирование, пробелы, Markdown"
+run = "hk fix --all"
+
+[tasks.test]
+description = "Тесты фронтенда и бэкенда"
+depends = ["test:frontend", "test:backend"]
+
+[tasks."test:frontend"]
+dir = "frontend"
+run = "npm test"
+
+[tasks."test:backend"]
+dir = "backend"
+run = "./mvnw -B -q test"
+
+[tasks.build]
+description = "Production-сборка фронтенда и jar бэкенда"
+depends = ["build:frontend", "build:backend"]
+
+[tasks."build:frontend"]
+dir = "frontend"
+run = "npm run build"
+
+[tasks."build:backend"]
+dir = "backend"
+run = "./mvnw -B -q package -DskipTests"
+
+# ---------- разработка ----------
+
+[tasks.dev]
+description = "Бэкенд (:8080) и фронтенд (:5173) параллельно; Ctrl+C останавливает оба"
+depends = ["dev:backend", "dev:frontend"]
+
+[tasks."dev:backend"]
+dir = "backend"
+run = "./mvnw spring-boot:run"
+
+[tasks."dev:frontend"]
+dir = "frontend"
+run = "npm run dev"

@@ -1,0 +1,10 @@
+# Настройки IDE
+.idea/
+*.iml
+.vscode/
+
+# macOS
+.DS_Store
+
+# npm-зависимости инструментов репозитория (commitlint)
+/node_modules/
