@@ -157,6 +157,24 @@ describe('Мастер записи: шаг 2 — календарь и слот
     expect(screen.getByRole('button', { name: 'Продолжить' })).toBeDisabled()
   })
 
+  it('показывает все слоты с меткой «Занято», когда на дату всё занято', async () => {
+    server.use(
+      http.get('/api/slots', () =>
+        HttpResponse.json([
+          { start: '2026-11-26T09:00:00+03:00', status: 'busy' },
+          { start: '2026-11-26T09:15:00+03:00', status: 'busy' },
+        ]),
+      ),
+    )
+    await goToCalendarStep()
+
+    fireEvent.click(screen.getByRole('button', { name: '26' }))
+
+    expect(await screen.findByRole('button', { name: '09:00 · Занято' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '09:15 · Занято' })).toBeDisabled()
+    expect(screen.queryByText('Нет свободных слотов')).not.toBeInTheDocument()
+  })
+
   it('показывает ошибку загрузки слотов с кнопкой «Повторить»', async () => {
     server.use(http.get('/api/slots', () => HttpResponse.error()))
     await goToCalendarStep()

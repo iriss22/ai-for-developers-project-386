@@ -87,7 +87,8 @@ function CalendarStep({
       </Alert>
     )
   } else if (current?.status === 'ready') {
-    if (current.slots.every((slot) => slot.status !== 'free')) {
+    // Заглушка — только когда слотов нет вовсе; занятые слоты показываются с меткой «Занято»
+    if (current.slots.length === 0) {
       slotsContent = <Text c="dimmed">Нет свободных слотов</Text>
     } else {
       slotsContent = (
