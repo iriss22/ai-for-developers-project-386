@@ -126,6 +126,17 @@ class SlotsApiTest {
   }
 
   @Test
+  void missingDateOrMeetingTypeIdReturns400WithFieldError() throws Exception {
+    mvc.perform(get("/api/slots?meetingTypeId=1"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.date").isString());
+
+    mvc.perform(get("/api/slots?date=2026-11-12"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.meetingTypeId").isString());
+  }
+
+  @Test
   void unknownMeetingTypeIdReturns404() throws Exception {
     mvc.perform(get("/api/slots?meetingTypeId={id}&date={date}", 999, "2026-11-12"))
         .andExpect(status().isNotFound());

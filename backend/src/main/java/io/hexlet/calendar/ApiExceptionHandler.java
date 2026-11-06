@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -63,5 +64,13 @@ public class ApiExceptionHandler {
       MethodArgumentTypeMismatchException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(Map.of("errors", Map.of(ex.getName(), "Некорректное значение параметра")));
+  }
+
+  // Обязательный параметр запроса не передан (например, GET /api/slots без date)
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<Map<String, Map<String, String>>> handleMissingParameter(
+      MissingServletRequestParameterException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(Map.of("errors", Map.of(ex.getParameterName(), "Обязательный параметр")));
   }
 }
