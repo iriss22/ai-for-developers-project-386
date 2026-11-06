@@ -102,4 +102,27 @@ class MeetingTypeApiTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors.durationMinutes").isString());
   }
+
+  @Test
+  void createMeetingTypeWithDuplicateNameIgnoringCaseAndSpacesReturns400WithNameError()
+      throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "Интервью", "durationMinutes": 60}
+                    """))
+        .andExpect(status().isCreated());
+
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "  интервью  ", "durationMinutes": 30}
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.name").isString());
+  }
 }

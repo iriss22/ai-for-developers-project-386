@@ -22,12 +22,19 @@ public class MeetingTypeService {
 
   public MeetingType create(String name, String description, Integer durationMinutes) {
     Map<String, String> errors = new LinkedHashMap<>();
+    String normalizedName = name.strip();
+    boolean nameTaken =
+        repository.findAll().stream()
+            .anyMatch(existing -> existing.name().equalsIgnoreCase(normalizedName));
+    if (nameTaken) {
+      errors.put("name", "Тип встречи с таким названием уже существует");
+    }
     if (durationMinutes == null || !ALLOWED_DURATIONS.contains(durationMinutes)) {
       errors.put("durationMinutes", "Длительность должна быть 15, 30 или 60 минут");
     }
     if (!errors.isEmpty()) {
       throw new ValidationException(errors);
     }
-    return repository.save(new MeetingType(null, name.strip(), description, durationMinutes));
+    return repository.save(new MeetingType(null, normalizedName, description, durationMinutes));
   }
 }
