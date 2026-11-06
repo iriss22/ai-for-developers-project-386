@@ -1,13 +1,16 @@
 package io.hexlet.calendar;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,5 +26,26 @@ class MeetingTypeApiTest {
     mvc.perform(get("/api/meeting-types"))
         .andExpect(status().isOk())
         .andExpect(content().json("[]"));
+  }
+
+  @Test
+  void createMeetingTypeReturnsCreatedAndAppearsInList() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "Интервью", "description": "Техническое интервью", "durationMinutes": 60}
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").isNumber())
+        .andExpect(jsonPath("$.name").value("Интервью"))
+        .andExpect(jsonPath("$.description").value("Техническое интервью"))
+        .andExpect(jsonPath("$.durationMinutes").value(60));
+
+    mvc.perform(get("/api/meeting-types"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].name").value("Интервью"));
   }
 }
