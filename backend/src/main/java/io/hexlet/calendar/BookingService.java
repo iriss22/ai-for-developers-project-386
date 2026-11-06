@@ -33,31 +33,29 @@ public class BookingService {
   }
 
   // synchronized: проверка пересечения и сохранение атомарны, гонку двух гостей решает сервер
-  public synchronized Booking create(
-      Long meetingTypeId, OffsetDateTime start, String guestName, String guestEmail, String note) {
-    if (meetingTypeId == null || meetingTypeRepository.findById(meetingTypeId).isEmpty()) {
-      throw new NotFoundException("Тип встречи не найден");
-    }
-    MeetingType type = meetingTypeRepository.findById(meetingTypeId).orElseThrow();
-    validateStart(start, type);
-    Instant bookingStart = start.toInstant();
-    Instant bookingEnd = bookingStart.plusSeconds(type.durationMinutes() * 60L);
+  public synchronized Booking create(NewBooking command) {
+    MeetingType type =
+        meetingTypeRepository
+            .findById(command.meetingTypeId())
+            .orElseThrow(() -> new NotFoundException("Тип встречи не найден"));
+    validateStart(command.start(), type);
+    BookingInterval requested =
+        BookingInterval.of(command.start().toInstant(), type.durationMinutes());
     boolean overlaps =
         bookingRepository.findAll().stream()
-            .anyMatch(
-                existing -> {
-                  MeetingType existingType =
-                      meetingTypeRepository.findById(existing.meetingTypeId()).orElseThrow();
-                  Instant existingStart = existing.start().toInstant();
-                  Instant existingEnd =
-                      existingStart.plusSeconds(existingType.durationMinutes() * 60L);
-                  return bookingStart.isBefore(existingEnd) && existingStart.isBefore(bookingEnd);
-                });
+            .map(booking -> BookingInterval.of(booking, meetingTypeOf(booking)))
+            .anyMatch(requested::overlaps);
     if (overlaps) {
       throw new ConflictException("Это время уже занято");
     }
     return bookingRepository.save(
-        new Booking(null, meetingTypeId, start, guestName, guestEmail, note));
+        new Booking(
+            null,
+            command.meetingTypeId(),
+            command.start(),
+            command.guestName(),
+            command.guestEmail(),
+            command.note()));
   }
 
   // Старт записи — старт слота: сетка 15 минут, слот целиком внутри 9:00–18:00,
@@ -93,13 +91,12 @@ public class BookingService {
   public List<Booking> findUpcoming() {
     Instant now = clock.instant();
     return bookingRepository.findAll().stream()
-        .filter(booking -> bookingEnd(booking).isAfter(now))
+        .filter(booking -> BookingInterval.of(booking, meetingTypeOf(booking)).end().isAfter(now))
         .sorted(Comparator.comparing(booking -> booking.start().toInstant()))
         .toList();
   }
 
-  private Instant bookingEnd(Booking booking) {
-    MeetingType type = meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow();
-    return booking.start().toInstant().plusSeconds(type.durationMinutes() * 60L);
+  private MeetingType meetingTypeOf(Booking booking) {
+    return meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow();
   }
 }

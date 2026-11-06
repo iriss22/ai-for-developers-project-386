@@ -51,25 +51,21 @@ public class SlotService {
       if (!slotStart.toInstant().isAfter(now)) {
         continue;
       }
-      Instant slotEnd = slotStart.toInstant().plusSeconds(type.durationMinutes() * 60L);
-      String status = overlapsAnyBooking(slotStart.toInstant(), slotEnd) ? "busy" : "free";
+      BookingInterval slot = BookingInterval.of(slotStart.toInstant(), type.durationMinutes());
+      SlotStatus status = overlapsAnyBooking(slot) ? SlotStatus.BUSY : SlotStatus.FREE;
       slots.add(new Slot(slotStart.toOffsetDateTime(), status));
     }
     return slots;
   }
 
-  // Интервал записи — [start, start + длительность её типа); стык-в-стык не считается пересечением
-  private boolean overlapsAnyBooking(Instant slotStart, Instant slotEnd) {
+  private boolean overlapsAnyBooking(BookingInterval slot) {
     return bookingRepository.findAll().stream()
-        .anyMatch(
-            booking -> {
-              MeetingType bookingType =
-                  meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow();
-              Instant bookingStart = booking.start().toInstant();
-              Instant bookingEnd = bookingStart.plusSeconds(bookingType.durationMinutes() * 60L);
-              return slotStart.isBefore(bookingEnd) && bookingStart.isBefore(slotEnd);
-            });
+        .map(
+            booking ->
+                BookingInterval.of(
+                    booking, meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow()))
+        .anyMatch(slot::overlaps);
   }
 
-  public record Slot(OffsetDateTime start, String status) {}
+  public record Slot(OffsetDateTime start, SlotStatus status) {}
 }

@@ -43,11 +43,12 @@ public class BookingController {
   public BookingResponse create(@Valid @RequestBody CreateBookingRequest request) {
     Booking booking =
         bookingService.create(
-            request.meetingTypeId(),
-            request.start(),
-            request.guestName(),
-            request.guestEmail(),
-            request.note());
+            new NewBooking(
+                request.meetingTypeId(),
+                request.start(),
+                request.guestName(),
+                request.guestEmail(),
+                request.note()));
     MeetingType type = meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow();
     return BookingResponse.of(booking, type);
   }
