@@ -134,8 +134,9 @@ describe('Мастер записи: шаг 2 — календарь и слот
     fireEvent.click(screen.getByRole('button', { name: '26' }))
 
     const freeSlot = await screen.findByRole('button', { name: '09:00' })
-    // Занятый слот выбрать нельзя
-    expect(screen.getByRole('button', { name: '09:15' })).toBeDisabled()
+    // Занятый слот виден с меткой «Занято» и выбрать его нельзя
+    const busySlot = screen.getByRole('button', { name: '09:15 · Занято' })
+    expect(busySlot).toBeDisabled()
 
     fireEvent.click(freeSlot)
 
@@ -329,8 +330,8 @@ describe('Мастер записи: шаги 3–4 — форма и подтв
     expect(screen.getByText('Календарь')).toBeInTheDocument()
     expect(screen.queryByLabelText('Имя')).not.toBeInTheDocument()
 
-    // Список слотов обновлён: слот 09:00 теперь занят и недоступен для выбора
-    const busySlot = await screen.findByRole('button', { name: '09:00' })
+    // Список слотов обновлён: слот 09:00 теперь показан как «Занято» и недоступен для выбора
+    const busySlot = await screen.findByRole('button', { name: '09:00 · Занято' })
     expect(busySlot).toBeDisabled()
     expect(screen.getByRole('button', { name: '09:15' })).toBeEnabled()
     expect(slotsRequests).toBe(2)

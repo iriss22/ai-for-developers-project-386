@@ -90,18 +90,23 @@ function CalendarStep({
     } else {
       slotsContent = (
         <SimpleGrid cols={4} spacing="xs">
-          {current.slots.map((slot) => (
-            <Button
-              key={slot.start}
-              size="compact-sm"
-              variant={selectedSlot === slot.start ? 'filled' : 'light'}
-              color={slot.status === 'free' ? undefined : 'gray'}
-              disabled={slot.status !== 'free'}
-              onClick={() => onSelectSlot(slot.start)}
-            >
-              {slotTime(slot.start)}
-            </Button>
-          ))}
+          {current.slots.map((slot) =>
+            slot.status === 'free' ? (
+              <Button
+                key={slot.start}
+                size="compact-sm"
+                variant={selectedSlot === slot.start ? 'filled' : 'light'}
+                onClick={() => onSelectSlot(slot.start)}
+              >
+                {slotTime(slot.start)}
+              </Button>
+            ) : (
+              // Занятый слот виден гостю с меткой «Занято», но недоступен для выбора
+              <Button key={slot.start} size="compact-sm" variant="light" color="gray" disabled>
+                {slotTime(slot.start)} · Занято
+              </Button>
+            ),
+          )}
         </SimpleGrid>
       )
     }
