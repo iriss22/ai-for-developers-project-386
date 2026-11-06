@@ -99,4 +99,27 @@ describe('Админка: вкладка «Типы встреч»', () => {
       durationMinutes: 60,
     })
   })
+
+  it('показывает серверную ошибку валидации у поля «Название»', async () => {
+    server.use(
+      http.post('/api/meeting-types', () =>
+        HttpResponse.json(
+          { errors: { name: 'Тип встречи с таким названием уже существует' } },
+          { status: 400 },
+        ),
+      ),
+    )
+    renderAdmin()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Создать событие' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Название' }), {
+      target: { value: 'Интервью' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
+
+    expect(
+      await screen.findByText('Тип встречи с таким названием уже существует'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Название' })).toBeInTheDocument()
+  })
 })
