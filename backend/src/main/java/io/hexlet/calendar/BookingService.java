@@ -23,7 +23,8 @@ public class BookingService {
     this.clock = clock;
   }
 
-  public Booking create(
+  // synchronized: проверка пересечения и сохранение атомарны, гонку двух гостей решает сервер
+  public synchronized Booking create(
       Long meetingTypeId, OffsetDateTime start, String guestName, String guestEmail, String note) {
     if (meetingTypeId == null || meetingTypeRepository.findById(meetingTypeId).isEmpty()) {
       throw new NotFoundException("Тип встречи не найден");

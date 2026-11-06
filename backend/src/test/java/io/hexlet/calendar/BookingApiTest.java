@@ -2,6 +2,7 @@ package io.hexlet.calendar;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -10,6 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,6 +156,40 @@ class BookingApiTest {
     // Стык-в-стык — не пересечение: запись с 11:00 создаётся
     book(type60, "2026-11-12T11:00:00+03:00", "Мария Сидорова", "maria@example.com")
         .andExpect(status().isCreated());
+  }
+
+  @Test
+  void twoParallelBookingsOnSameSlotYieldExactlyOne201AndOne409() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    // Гонка двух гостей за один слот: решает сервер — ровно один 201 и ровно один 409.
+    // Каждая пара запросов бронирует свой день, чтобы пары не пересекались между собой.
+    for (int day = 12; day <= 21; day++) {
+      String start = "2026-11-%02dT10:00:00+03:00".formatted(day);
+      CyclicBarrier barrier = new CyclicBarrier(2);
+      Callable<Integer> postBooking =
+          () -> {
+            barrier.await(10, TimeUnit.SECONDS);
+            return book(typeId, start, "Иван Петров", "ivan@example.com")
+                .andReturn()
+                .getResponse()
+                .getStatus();
+          };
+      ExecutorService executor = Executors.newFixedThreadPool(2);
+      try {
+        Future<Integer> first = executor.submit(postBooking);
+        Future<Integer> second = executor.submit(postBooking);
+        List<Integer> statuses =
+            List.of(first.get(30, TimeUnit.SECONDS), second.get(30, TimeUnit.SECONDS));
+        long created = statuses.stream().filter(code -> code == 201).count();
+        long conflicts = statuses.stream().filter(code -> code == 409).count();
+        String context = "день " + day + ": статусы " + statuses;
+        assertEquals(1, created, () -> context);
+        assertEquals(1, conflicts, () -> context);
+      } finally {
+        executor.shutdownNow();
+      }
+    }
   }
 
   @Test
