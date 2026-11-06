@@ -123,3 +123,13 @@ describe('Админка: вкладка «Типы встреч»', () => {
     expect(screen.getByRole('textbox', { name: 'Название' })).toBeInTheDocument()
   })
 })
+
+describe('Админка: вкладка «Предстоящие встречи»', () => {
+  it('показывает заглушку', async () => {
+    renderAdmin()
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Предстоящие встречи' }))
+
+    expect(screen.getByText('Страница в разработке')).toBeInTheDocument()
+  })
+})
