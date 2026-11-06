@@ -260,6 +260,27 @@ class BookingApiTest {
   }
 
   @Test
+  void malformedJsonBodyReturns400WithErrors() throws Exception {
+    mvc.perform(post("/api/bookings").contentType(MediaType.APPLICATION_JSON).content("{"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.request").isString());
+  }
+
+  @Test
+  void wrongFieldTypeInBodyReturns400WithFieldError() throws Exception {
+    mvc.perform(
+            post("/api/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"meetingTypeId": "abc", "start": "2026-11-12T10:00:00+03:00",
+                     "guestName": "Иван Петров", "guestEmail": "ivan@example.com"}
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.meetingTypeId").isString());
+  }
+
+  @Test
   void bookingWithBlankNameReturns400WithGuestNameError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 

@@ -119,6 +119,13 @@ class SlotsApiTest {
   }
 
   @Test
+  void nonNumericMeetingTypeIdReturns400WithFieldError() throws Exception {
+    mvc.perform(get("/api/slots?meetingTypeId=abc&date=2026-11-12"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.meetingTypeId").isString());
+  }
+
+  @Test
   void unknownMeetingTypeIdReturns404() throws Exception {
     mvc.perform(get("/api/slots?meetingTypeId={id}&date={date}", 999, "2026-11-12"))
         .andExpect(status().isNotFound());
