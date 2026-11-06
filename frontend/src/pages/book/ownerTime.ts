@@ -28,3 +28,27 @@ export function formatDateRu(date: string): string {
 export function slotTime(start: string): string {
   return start.slice(11, 16)
 }
+
+const ownerDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
+  timeZone: OWNER_TIME_ZONE,
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+const ownerTimeOnlyFormatter = new Intl.DateTimeFormat('ru-RU', {
+  timeZone: OWNER_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+// Интервал записи в поясе владельца: конец = старт + длительность типа,
+// например '10.11.2026, 09:00–09:30 (Europe/Moscow)'
+export function formatOwnerInterval(startIso: string, durationMinutes: number): string {
+  const start = new Date(startIso)
+  const end = new Date(start.getTime() + durationMinutes * 60_000)
+  const date = ownerDateTimeFormatter.format(start)
+  const startTime = ownerTimeOnlyFormatter.format(start)
+  const endTime = ownerTimeOnlyFormatter.format(end)
+  return `${date}, ${startTime}–${endTime} (${OWNER_TIME_ZONE})`
+}

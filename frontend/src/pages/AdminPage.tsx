@@ -1,5 +1,6 @@
-import { Container, Tabs, Text, Title } from '@mantine/core'
+import { Container, Tabs, Title } from '@mantine/core'
 import MeetingTypesTab from './admin/MeetingTypesTab.tsx'
+import UpcomingBookingsTab from './admin/UpcomingBookingsTab.tsx'
 
 function AdminPage() {
   return (
@@ -14,7 +15,7 @@ function AdminPage() {
           <MeetingTypesTab />
         </Tabs.Panel>
         <Tabs.Panel value="upcoming" pt="md">
-          <Text c="dimmed">Страница в разработке</Text>
+          <UpcomingBookingsTab />
         </Tabs.Panel>
       </Tabs>
     </Container>

@@ -125,11 +125,88 @@ describe('Админка: вкладка «Типы встреч»', () => {
 })
 
 describe('Админка: вкладка «Предстоящие встречи»', () => {
-  it('показывает заглушку', async () => {
+  async function openUpcomingTab() {
     renderAdmin()
-
     fireEvent.click(await screen.findByRole('tab', { name: 'Предстоящие встречи' }))
+  }
 
-    expect(screen.getByText('Страница в разработке')).toBeInTheDocument()
+  it('показывает заглушку, когда предстоящих встреч нет', async () => {
+    await openUpcomingTab()
+
+    expect(await screen.findByText('Предстоящих встреч нет')).toBeInTheDocument()
+  })
+
+  it('показывает список записей с типом, интервалом в поясе владельца, гостем и заметкой', async () => {
+    server.use(
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            start: '2026-11-10T09:00:00+03:00',
+            guestName: 'Иван Петров',
+            guestEmail: 'ivan@example.com',
+            note: 'Подготовить резюме',
+            meetingType: { id: 1, name: 'Интервью', durationMinutes: 30 },
+          },
+          {
+            id: 2,
+            start: '2026-11-12T14:30:00+03:00',
+            guestName: 'Мария Сидорова',
+            guestEmail: 'maria@example.com',
+            note: null,
+            meetingType: { id: 2, name: 'Разбор резюме', durationMinutes: 60 },
+          },
+        ]),
+      ),
+    )
+    await openUpcomingTab()
+
+    expect(await screen.findByText('Интервью')).toBeInTheDocument()
+    expect(screen.getByText('10.11.2026, 09:00–09:30 (Europe/Moscow)')).toBeInTheDocument()
+    expect(screen.getByText('Иван Петров')).toBeInTheDocument()
+    expect(screen.getByText('ivan@example.com')).toBeInTheDocument()
+    expect(screen.getByText('Подготовить резюме')).toBeInTheDocument()
+    expect(screen.getByText('Разбор резюме')).toBeInTheDocument()
+    expect(screen.getByText('12.11.2026, 14:30–15:30 (Europe/Moscow)')).toBeInTheDocument()
+    expect(screen.getByText('Мария Сидорова')).toBeInTheDocument()
+    expect(screen.getByText('maria@example.com')).toBeInTheDocument()
+  })
+
+  it('показывает индикатор загрузки, пока список загружается', async () => {
+    server.use(
+      http.get('/api/bookings', async () => {
+        await delay(100)
+        return HttpResponse.json([])
+      }),
+    )
+    await openUpcomingTab()
+
+    expect(screen.getByRole('status', { name: 'Загрузка' })).toBeInTheDocument()
+    expect(await screen.findByText('Предстоящих встреч нет')).toBeInTheDocument()
+  })
+
+  it('показывает сообщение об ошибке с кнопкой «Повторить» и загружает список повторно', async () => {
+    server.use(http.get('/api/bookings', () => HttpResponse.error()))
+    await openUpcomingTab()
+
+    expect(await screen.findByText('Не удалось загрузить предстоящие встречи')).toBeInTheDocument()
+
+    server.use(
+      http.get('/api/bookings', () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            start: '2026-11-10T09:00:00+03:00',
+            guestName: 'Иван Петров',
+            guestEmail: 'ivan@example.com',
+            note: null,
+            meetingType: { id: 1, name: 'Интервью', durationMinutes: 30 },
+          },
+        ]),
+      ),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить' }))
+
+    expect(await screen.findByText('Иван Петров')).toBeInTheDocument()
   })
 })
