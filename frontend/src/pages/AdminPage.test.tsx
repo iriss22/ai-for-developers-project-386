@@ -67,4 +67,36 @@ describe('Админка: вкладка «Типы встреч»', () => {
 
     expect(await screen.findByText('Интервью')).toBeInTheDocument()
   })
+
+  it('создаёт тип встречи через форму по кнопке «Создать событие»', async () => {
+    let requestBody: unknown
+    server.use(
+      http.post('/api/meeting-types', async ({ request }) => {
+        requestBody = await request.json()
+        return HttpResponse.json(
+          { id: 1, name: 'Интервью', description: 'Техническое интервью', durationMinutes: 60 },
+          { status: 201 },
+        )
+      }),
+    )
+    renderAdmin()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Создать событие' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Название' }), {
+      target: { value: 'Интервью' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Описание' }), {
+      target: { value: 'Техническое интервью' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: '60 минут' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
+
+    expect(await screen.findByText('Интервью')).toBeInTheDocument()
+    expect(screen.getByText('60 мин')).toBeInTheDocument()
+    expect(requestBody).toEqual({
+      name: 'Интервью',
+      description: 'Техническое интервью',
+      durationMinutes: 60,
+    })
+  })
 })
