@@ -18,6 +18,12 @@ public class MeetingTypeService {
     return repository.findAll();
   }
 
+  public MeetingType getById(long id) {
+    return repository
+        .findById(id)
+        .orElseThrow(() -> new NotFoundException("Тип встречи не найден"));
+  }
+
   private static final List<Integer> ALLOWED_DURATIONS = List.of(15, 30, 60);
 
   public MeetingType create(String name, String description, Integer durationMinutes) {

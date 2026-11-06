@@ -19,42 +19,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-  private final BookingService bookingService;
-  private final MeetingTypeRepository meetingTypeRepository;
+  // То же правило, что EMAIL_PATTERN во фронтенде (GuestFormStep): local@domain.tld без пробелов
+  private static final String EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 
-  public BookingController(
-      BookingService bookingService, MeetingTypeRepository meetingTypeRepository) {
+  private final BookingService bookingService;
+
+  public BookingController(BookingService bookingService) {
     this.bookingService = bookingService;
-    this.meetingTypeRepository = meetingTypeRepository;
   }
 
   @GetMapping
   public List<BookingResponse> list() {
-    return bookingService.findUpcoming().stream()
-        .map(
-            booking ->
-                BookingResponse.of(
-                    booking, meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow()))
-        .toList();
+    return bookingService.findUpcoming().stream().map(BookingResponse::of).toList();
   }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public BookingResponse create(@Valid @RequestBody CreateBookingRequest request) {
-    Booking booking =
+    return BookingResponse.of(
         bookingService.create(
             new NewBooking(
                 request.meetingTypeId(),
                 request.start(),
                 request.guestName(),
                 request.guestEmail(),
-                request.note()));
-    MeetingType type = meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow();
-    return BookingResponse.of(booking, type);
+                request.note())));
   }
-
-  // То же правило, что EMAIL_PATTERN во фронтенде (GuestFormStep): local@domain.tld без пробелов
-  private static final String EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 
   public record CreateBookingRequest(
       @NotNull(message = "Тип встречи обязателен") Long meetingTypeId,
@@ -75,7 +65,9 @@ public class BookingController {
       String note,
       BookingMeetingType meetingType) {
 
-    static BookingResponse of(Booking booking, MeetingType type) {
+    static BookingResponse of(ScheduledBooking scheduled) {
+      Booking booking = scheduled.booking();
+      MeetingType type = scheduled.meetingType();
       return new BookingResponse(
           booking.id(),
           booking.start(),
