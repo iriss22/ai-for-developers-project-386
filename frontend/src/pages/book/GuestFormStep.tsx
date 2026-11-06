@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '../../api/meetingTypes.ts'
 import { createBooking, type Booking } from '../../api/bookings.ts'
 import type { MeetingType } from '../../api/meetingTypes.ts'
+import { unshownFieldErrors } from '../../formErrors.ts'
 import { formatDateRu, OWNER_TIME_ZONE, slotTime } from './ownerTime.ts'
 
 type GuestFormStepProps = {
@@ -16,6 +17,8 @@ type GuestFormStepProps = {
 
 // То же правило, что EMAIL_PATTERN на бэкенде (BookingController): local@domain.tld без пробелов
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const FORM_FIELDS = ['guestName', 'guestEmail', 'note'] as const
 
 function GuestFormStep({ meetingType, start, onBooked, onConflict, onBack }: GuestFormStepProps) {
   const [guestName, setGuestName] = useState('')
@@ -39,6 +42,8 @@ function GuestFormStep({ meetingType, start, onBooked, onConflict, onBack }: Gue
     }
     return fieldErrors
   }
+
+  const generalErrors = unshownFieldErrors(errors, FORM_FIELDS)
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -95,7 +100,11 @@ function GuestFormStep({ meetingType, start, onBooked, onConflict, onBack }: Gue
             onChange={(event) => setNote(event.currentTarget.value)}
             error={errors.note}
           />
-          {submitError && <Alert color="red" title="Не удалось забронировать время" />}
+          {(submitError || generalErrors.length > 0) && (
+            <Alert color="red" title="Не удалось забронировать время">
+              {generalErrors.join(' ')}
+            </Alert>
+          )}
           <Group>
             <Button variant="default" onClick={onBack}>
               Назад

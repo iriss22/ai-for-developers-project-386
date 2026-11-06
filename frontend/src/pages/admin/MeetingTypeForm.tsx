@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Modal, Radio, Stack, Textarea, TextInput } from '@mantine/core'
 import { useState, type FormEvent } from 'react'
 import { ApiError, createMeetingType, type MeetingType } from '../../api/meetingTypes.ts'
+import { unshownFieldErrors } from '../../formErrors.ts'
 
 type MeetingTypeFormProps = {
   opened: boolean
@@ -9,6 +10,7 @@ type MeetingTypeFormProps = {
 }
 
 const DEFAULT_DURATION = '30'
+const FORM_FIELDS = ['name', 'description', 'durationMinutes'] as const
 
 function MeetingTypeForm({ opened, onClose, onCreated }: MeetingTypeFormProps) {
   const [name, setName] = useState('')
@@ -24,6 +26,8 @@ function MeetingTypeForm({ opened, onClose, onCreated }: MeetingTypeFormProps) {
     setErrors({})
     setSubmitError(false)
   }
+
+  const generalErrors = unshownFieldErrors(errors, FORM_FIELDS)
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -76,7 +80,11 @@ function MeetingTypeForm({ opened, onClose, onCreated }: MeetingTypeFormProps) {
               <Radio value="60" label="60 минут" />
             </Group>
           </Radio.Group>
-          {submitError && <Alert color="red" title="Не удалось сохранить тип встреч" />}
+          {(submitError || generalErrors.length > 0) && (
+            <Alert color="red" title="Не удалось сохранить тип встреч">
+              {generalErrors.join(' ')}
+            </Alert>
+          )}
           <Button type="submit">Сохранить</Button>
         </Stack>
       </form>

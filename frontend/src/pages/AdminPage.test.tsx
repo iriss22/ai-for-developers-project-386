@@ -122,6 +122,24 @@ describe('Админка: вкладка «Типы встреч»', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Название' })).toBeInTheDocument()
   })
+
+  it('показывает серверную ошибку 400 без поля в форме общим сообщением', async () => {
+    server.use(
+      http.post('/api/meeting-types', () =>
+        HttpResponse.json({ errors: { request: 'Некорректное значение' } }, { status: 400 }),
+      ),
+    )
+    renderAdmin()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Создать событие' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Название' }), {
+      target: { value: 'Интервью' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
+
+    expect(await screen.findByText('Некорректное значение')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Название' })).toBeInTheDocument()
+  })
 })
 
 describe('Админка: вкладка «Предстоящие встречи»', () => {

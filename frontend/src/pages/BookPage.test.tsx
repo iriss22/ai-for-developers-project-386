@@ -337,6 +337,21 @@ describe('Мастер записи: шаги 3–4 — форма и подтв
     expect(screen.getByLabelText('Имя')).toBeInTheDocument()
   })
 
+  it('показывает серверные ошибки 400 без поля в форме общим сообщением', async () => {
+    server.use(
+      http.post('/api/bookings', () =>
+        HttpResponse.json({ errors: { start: 'Это время уже прошло' } }, { status: 400 }),
+      ),
+    )
+    await goToFormStep()
+
+    fillForm('Иван Петров', 'ivan@example.com')
+    fireEvent.click(screen.getByRole('button', { name: 'Забронировать' }))
+
+    expect(await screen.findByText('Это время уже прошло')).toBeInTheDocument()
+    expect(screen.getByLabelText('Имя')).toBeInTheDocument()
+  })
+
   it('при ответе 409 показывает «Это время уже занято» и возвращает к слотам с обновлённым списком', async () => {
     let slotsRequests = 0
     server.use(
