@@ -103,12 +103,15 @@ class UpcomingBookingsApiTest {
   void pastBookingsAreNotReturnedWhileOngoingAndFutureOnesAre() throws Exception {
     long typeId = createMeetingType("Интервью", 30);
 
-    // Прошедшая запись: 9:00–9:30, конец раньше «сейчас» (10:30) — выпадает из списка
+    // Создаём записи, пока все они в будущем: «сейчас» — 10.11 8:30 по поясу владельца
+    when(clock.instant()).thenReturn(Instant.parse("2026-11-10T05:30:00Z"));
     book(typeId, "2026-11-10T09:00:00+03:00", "Иван Петров", "ivan@example.com");
-    // Идущая сейчас запись: 10:15–10:45, конец позже «сейчас» — ещё предстоящая
     book(typeId, "2026-11-10T10:15:00+03:00", "Мария Сидорова", "maria@example.com");
-    // Будущая запись
     book(typeId, "2026-11-12T09:00:00+03:00", "Пётр Иванов", "petr@example.com");
+
+    // Время идёт: теперь «сейчас» — 10.11 10:30. Запись 9:00–9:30 прошла и выпадает из списка;
+    // идущая сейчас (10:15–10:45) и будущая — остаются
+    when(clock.instant()).thenReturn(NOW);
 
     mvc.perform(get("/api/bookings"))
         .andExpect(status().isOk())

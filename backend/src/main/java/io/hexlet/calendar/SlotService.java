@@ -15,11 +15,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class SlotService {
 
-  private static final LocalTime DAY_START = LocalTime.of(9, 0);
-  private static final LocalTime DAY_END = LocalTime.of(18, 0);
-  private static final int GRID_STEP_MINUTES = 15;
-  private static final int BOOKING_WINDOW_DAYS = 14;
-
   private final MeetingTypeRepository meetingTypeRepository;
   private final BookingRepository bookingRepository;
   private final Clock clock;
@@ -44,14 +39,14 @@ public class SlotService {
 
     Instant now = clock.instant();
     LocalDate today = LocalDate.ofInstant(now, ownerZone);
-    if (date.isBefore(today) || !date.isBefore(today.plusDays(BOOKING_WINDOW_DAYS))) {
+    if (date.isBefore(today) || !date.isBefore(today.plusDays(CalendarRules.BOOKING_WINDOW_DAYS))) {
       return List.of();
     }
 
     List<Slot> slots = new ArrayList<>();
-    for (LocalTime start = DAY_START;
-        !start.plusMinutes(type.durationMinutes()).isAfter(DAY_END);
-        start = start.plusMinutes(GRID_STEP_MINUTES)) {
+    for (LocalTime start = CalendarRules.DAY_START;
+        !start.plusMinutes(type.durationMinutes()).isAfter(CalendarRules.DAY_END);
+        start = start.plusMinutes(CalendarRules.GRID_STEP_MINUTES)) {
       ZonedDateTime slotStart = ZonedDateTime.of(date, start, ownerZone);
       if (!slotStart.toInstant().isAfter(now)) {
         continue;

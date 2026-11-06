@@ -193,6 +193,67 @@ class BookingApiTest {
   }
 
   @Test
+  void bookingStartOffTheQuarterHourGridReturns400WithStartError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    book(typeId, "2026-11-12T10:10:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+  }
+
+  @Test
+  void bookingSlotOutsideDayBoundsReturns400WithStartError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    // До начала дня
+    book(typeId, "2026-11-12T08:45:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+
+    // Слот не умещается в границы дня: 17:30 + 60 минут = 18:30
+    book(typeId, "2026-11-12T17:30:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+
+    // Стык-в-стык с концом дня разрешён: 17:00 + 60 минут = 18:00
+    book(typeId, "2026-11-12T17:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void bookingDateOutsideBookingWindowReturns400WithStartError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    // Окно записи — 14 календарных дней включая сегодня: 10.11–23.11
+    book(typeId, "2026-11-24T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+
+    book(typeId, "2026-11-09T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+
+    // Последний день окна — можно
+    book(typeId, "2026-11-23T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void bookingStartInThePastReturns400WithStartError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    // Сейчас 10.11.2026 10:30 по поясу владельца
+    book(typeId, "2026-11-10T10:15:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+
+    // Слот со стартом ровно «сейчас» уже недоступен (как и в списке слотов)
+    book(typeId, "2026-11-10T10:30:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.start").isString());
+  }
+
+  @Test
   void bookingWithUnknownMeetingTypeIdReturns404() throws Exception {
     book(999, "2026-11-12T10:00:00+03:00", "Иван Петров", "ivan@example.com")
         .andExpect(status().isNotFound());
