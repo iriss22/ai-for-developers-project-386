@@ -104,6 +104,23 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  void meetingTypeNameIsStoredAsEntered() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "  Интервью  ", "durationMinutes": 60}
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.name").value("  Интервью  "));
+
+    mvc.perform(get("/api/meeting-types"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("  Интервью  "));
+  }
+
+  @Test
   void createMeetingTypeWithDuplicateNameIgnoringCaseAndSpacesReturns400WithNameError()
       throws Exception {
     mvc.perform(

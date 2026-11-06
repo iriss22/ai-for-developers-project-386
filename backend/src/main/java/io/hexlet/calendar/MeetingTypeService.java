@@ -22,10 +22,10 @@ public class MeetingTypeService {
 
   public MeetingType create(String name, String description, Integer durationMinutes) {
     Map<String, String> errors = new LinkedHashMap<>();
-    String normalizedName = name.strip();
+    // Уникальность — по обрезанному названию без учёта регистра; храним название как введено
     boolean nameTaken =
         repository.findAll().stream()
-            .anyMatch(existing -> existing.name().equalsIgnoreCase(normalizedName));
+            .anyMatch(existing -> existing.name().strip().equalsIgnoreCase(name.strip()));
     if (nameTaken) {
       errors.put("name", "Тип встречи с таким названием уже существует");
     }
@@ -35,6 +35,6 @@ public class MeetingTypeService {
     if (!errors.isEmpty()) {
       throw new ValidationException(errors);
     }
-    return repository.save(new MeetingType(null, normalizedName, description, durationMinutes));
+    return repository.save(new MeetingType(null, name, description, durationMinutes));
   }
 }
