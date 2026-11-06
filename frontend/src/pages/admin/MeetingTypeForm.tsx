@@ -2,6 +2,7 @@ import { Alert, Button, Group, Modal, Radio, Stack, Textarea, TextInput } from '
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../../api/client.ts'
 import { createMeetingType, type MeetingType } from '../../api/meetingTypes.ts'
+import type { MeetingDuration } from '../../api/generated/types.gen.ts'
 import { unshownFieldErrors } from '../../formErrors.ts'
 
 type MeetingTypeFormProps = {
@@ -37,7 +38,7 @@ function MeetingTypeForm({ opened, onClose, onCreated }: MeetingTypeFormProps) {
     createMeetingType({
       name,
       description: description || undefined,
-      durationMinutes: Number(duration),
+      durationMinutes: Number(duration) as MeetingDuration,
     })
       .then((created) => {
         reset()

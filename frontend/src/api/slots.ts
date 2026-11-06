@@ -1,11 +1,9 @@
-import { getJson } from './client.ts'
+import { slotsList } from './generated/sdk.gen.ts'
+import type { Slot } from './generated/types.gen.ts'
+import { unwrap } from './client.ts'
 
-export type Slot = {
-  start: string
-  status: 'free' | 'busy'
-}
+export type { Slot }
 
 export function fetchSlots(meetingTypeId: number, date: string): Promise<Slot[]> {
-  const query = new URLSearchParams({ meetingTypeId: String(meetingTypeId), date })
-  return getJson(`/api/slots?${query}`)
+  return unwrap(slotsList({ query: { meetingTypeId, date } }))
 }

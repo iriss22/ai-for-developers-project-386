@@ -1,3 +1,10 @@
+import { client } from './generated/client.gen.ts'
+
+// Сгенерированный клиент строит Request явно (new Request(url)), а не вызывает fetch(url) —
+// без абсолютного baseUrl это не резолвится в jsdom (и не во всех средах). В dev и проде
+// запрос всё равно остаётся на том же origin, поэтому proxy /api (vite.config.ts) видит его как раньше.
+client.setConfig({ baseUrl: window.location.origin })
+
 export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string>
@@ -10,31 +17,26 @@ export class ApiError extends Error {
   }
 }
 
-// Общий разбор ответа API: 400 → ApiError с ошибками полей из тела {"errors": {...}},
-// прочие неуспешные статусы → ApiError со статусом
-async function parse<T>(response: Response): Promise<T> {
-  if (response.status === 400) {
-    const body = (await response.json().catch(() => ({}))) as {
-      errors?: Record<string, string>
-    }
-    throw new ApiError(400, body.errors ?? {})
+type FieldsResult<TData> = { data?: TData; error?: unknown; response?: Response }
+
+function fieldErrorsOf(error: unknown): Record<string, string> {
+  if (typeof error === 'object' && error !== null && 'errors' in error) {
+    const errors = (error as { errors?: unknown }).errors
+    return errors && typeof errors === 'object' ? (errors as Record<string, string>) : {}
   }
-  if (!response.ok) {
-    throw new ApiError(response.status)
-  }
-  return response.json() as Promise<T>
+  return {}
 }
 
-export async function getJson<T>(url: string): Promise<T> {
-  return parse<T>(await fetch(url))
-}
-
-export async function postJson<T>(url: string, payload: unknown): Promise<T> {
-  return parse<T>(
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }),
-  )
+// Разворачивает результат вызова сгенерированного SDK (@hey-api/openapi-ts, клиент
+// client-fetch, см. mise run generate): при ошибке — ApiError со статусом ответа и, для 400,
+// ошибками полей из тела {"errors": {...}} (contract/main.tsp, модель ValidationErrorResponse)
+export async function unwrap<TData>(call: Promise<FieldsResult<TData>>): Promise<TData> {
+  const { data, error, response } = await call
+  if (error === undefined) {
+    // SDK гарантирует: data определено ровно тогда, когда error не определено
+    return data as TData
+  }
+  const status = response?.status ?? 0
+  const fieldErrors = status === 400 ? fieldErrorsOf(error) : {}
+  throw new ApiError(status, fieldErrors)
 }

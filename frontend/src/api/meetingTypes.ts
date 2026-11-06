@@ -1,22 +1,13 @@
-import { getJson, postJson } from './client.ts'
+import { meetingTypesCreate, meetingTypesList } from './generated/sdk.gen.ts'
+import type { MeetingType, NewMeetingType } from './generated/types.gen.ts'
+import { unwrap } from './client.ts'
 
-export type MeetingType = {
-  id: number
-  name: string
-  description: string | null
-  durationMinutes: number
-}
-
-type NewMeetingType = {
-  name: string
-  description?: string
-  durationMinutes: number
-}
+export type { MeetingType, NewMeetingType }
 
 export function fetchMeetingTypes(): Promise<MeetingType[]> {
-  return getJson('/api/meeting-types')
+  return unwrap(meetingTypesList())
 }
 
 export function createMeetingType(payload: NewMeetingType): Promise<MeetingType> {
-  return postJson('/api/meeting-types', payload)
+  return unwrap(meetingTypesCreate({ body: payload }))
 }

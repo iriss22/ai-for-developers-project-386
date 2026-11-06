@@ -1,32 +1,13 @@
-import { getJson, postJson } from './client.ts'
+import { bookingsCreate, bookingsList } from './generated/sdk.gen.ts'
+import type { Booking, NewBooking } from './generated/types.gen.ts'
+import { unwrap } from './client.ts'
 
-type BookingMeetingType = {
-  id: number
-  name: string
-  durationMinutes: number
-}
-
-export type Booking = {
-  id: number
-  start: string
-  guestName: string
-  guestEmail: string
-  note: string | null
-  meetingType: BookingMeetingType
-}
-
-type NewBooking = {
-  meetingTypeId: number
-  start: string
-  guestName: string
-  guestEmail: string
-  note?: string
-}
+export type { Booking, NewBooking }
 
 export function fetchBookings(): Promise<Booking[]> {
-  return getJson('/api/bookings')
+  return unwrap(bookingsList())
 }
 
 export function createBooking(payload: NewBooking): Promise<Booking> {
-  return postJson('/api/bookings', payload)
+  return unwrap(bookingsCreate({ body: payload }))
 }
