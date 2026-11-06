@@ -21,6 +21,11 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
   }
 
+  @ExceptionHandler(ConflictException.class)
+  public ResponseEntity<Map<String, String>> handleConflict(ConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Map<String, Map<String, String>>> handleBeanValidation(
       MethodArgumentNotValidException ex) {

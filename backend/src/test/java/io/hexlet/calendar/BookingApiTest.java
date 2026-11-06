@@ -1,0 +1,215 @@
+package io.hexlet.calendar;
+
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.Clock;
+import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+class BookingApiTest {
+
+  // Управляемые часы: «сейчас» — 10.11.2026 10:30 по поясу владельца (Europe/Moscow)
+  private static final Instant NOW = Instant.parse("2026-11-10T07:30:00Z");
+
+  @Autowired private MockMvc mvc;
+
+  @MockitoBean private Clock clock;
+
+  @BeforeEach
+  void setUp() {
+    when(clock.instant()).thenReturn(NOW);
+  }
+
+  private long createMeetingType(String name, int durationMinutes) throws Exception {
+    String response =
+        mvc.perform(
+                post("/api/meeting-types")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {"name": "%s", "durationMinutes": %d}
+                        """
+                            .formatted(name, durationMinutes)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    return Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
+  }
+
+  private ResultActions book(long meetingTypeId, String start, String guestName, String guestEmail)
+      throws Exception {
+    return mvc.perform(
+        post("/api/bookings")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+                {"meetingTypeId": %d, "start": "%s", "guestName": "%s", "guestEmail": "%s"}
+                """
+                    .formatted(meetingTypeId, start, guestName, guestEmail)));
+  }
+
+  @Test
+  void createBookingReturns201WithNestedMeetingType() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    mvc.perform(
+            post("/api/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"meetingTypeId": %d, "start": "2026-11-12T10:00:00+03:00",
+                     "guestName": "Иван Петров", "guestEmail": "ivan@example.com",
+                     "note": "Подготовить резюме"}
+                    """
+                        .formatted(typeId)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").isNumber())
+        .andExpect(jsonPath("$.start").value(startsWith("2026-11-12T10:00")))
+        .andExpect(jsonPath("$.start").value(endsWith("+03:00")))
+        .andExpect(jsonPath("$.guestName").value("Иван Петров"))
+        .andExpect(jsonPath("$.guestEmail").value("ivan@example.com"))
+        .andExpect(jsonPath("$.note").value("Подготовить резюме"))
+        .andExpect(jsonPath("$.meetingType.id").value(typeId))
+        .andExpect(jsonPath("$.meetingType.name").value("Интервью"))
+        .andExpect(jsonPath("$.meetingType.durationMinutes").value(60));
+  }
+
+  @Test
+  void bookingMakesOverlappingSlotsOfAnyTypeBusyAndAdjacentSlotsStayFree() throws Exception {
+    long type60 = createMeetingType("Интервью", 60);
+    long type15 = createMeetingType("Экспресс-разбор", 15);
+
+    // Запись 10:00–11:00 (60 минут)
+    book(type60, "2026-11-12T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isCreated());
+
+    // Слоты того же типа (60 минут), сетка 15 минут: 9:00 = [0], 9:15 = [1], …, 10:45 = [7], 11:00
+    // = [8]
+    // Пересекаются с 10:00–11:00 слоты со стартом 9:15–10:45 ([1]–[7]) — они заняты.
+    // Стык-в-стык разрешён: 9:00–10:00 и 11:00–12:00 свободны.
+    mvc.perform(get("/api/slots?meetingTypeId={id}&date={date}", type60, "2026-11-12"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].start").value(startsWith("2026-11-12T09:00")))
+        .andExpect(jsonPath("$[0].status").value("free"))
+        .andExpect(jsonPath("$[1].status").value("busy"))
+        .andExpect(jsonPath("$[4].status").value("busy"))
+        .andExpect(jsonPath("$[7].start").value(startsWith("2026-11-12T10:45")))
+        .andExpect(jsonPath("$[7].status").value("busy"))
+        .andExpect(jsonPath("$[8].start").value(startsWith("2026-11-12T11:00")))
+        .andExpect(jsonPath("$[8].status").value("free"));
+
+    // Слоты другого типа (15 минут): заняты ровно 10:00, 10:15, 10:30, 10:45 ([4]–[7]);
+    // стык-в-стык 9:45–10:00 ([3]) и 11:00–11:15 ([8]) свободны.
+    mvc.perform(get("/api/slots?meetingTypeId={id}&date={date}", type15, "2026-11-12"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[3].start").value(startsWith("2026-11-12T09:45")))
+        .andExpect(jsonPath("$[3].status").value("free"))
+        .andExpect(jsonPath("$[4].status").value("busy"))
+        .andExpect(jsonPath("$[5].status").value("busy"))
+        .andExpect(jsonPath("$[6].status").value("busy"))
+        .andExpect(jsonPath("$[7].start").value(startsWith("2026-11-12T10:45")))
+        .andExpect(jsonPath("$[7].status").value("busy"))
+        .andExpect(jsonPath("$[8].start").value(startsWith("2026-11-12T11:00")))
+        .andExpect(jsonPath("$[8].status").value("free"));
+  }
+
+  @Test
+  void secondBookingOnOverlappingIntervalReturns409WhileAdjacentIsAllowed() throws Exception {
+    long type60 = createMeetingType("Интервью", 60);
+    long type15 = createMeetingType("Экспресс-разбор", 15);
+
+    book(type60, "2026-11-12T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isCreated());
+
+    // Гонка: пересекающийся слот другого типа уже занят
+    book(type15, "2026-11-12T10:30:00+03:00", "Мария Сидорова", "maria@example.com")
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message").isString());
+
+    // Стык-в-стык — не пересечение: запись с 11:00 создаётся
+    book(type60, "2026-11-12T11:00:00+03:00", "Мария Сидорова", "maria@example.com")
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void bookingWithUnknownMeetingTypeIdReturns404() throws Exception {
+    book(999, "2026-11-12T10:00:00+03:00", "Иван Петров", "ivan@example.com")
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void bookingWithBlankNameReturns400WithGuestNameError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    book(typeId, "2026-11-12T10:00:00+03:00", "  ", "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.guestName").isString());
+  }
+
+  @Test
+  void bookingWithTooLongNameReturns400WithGuestNameError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    book(typeId, "2026-11-12T10:00:00+03:00", "а".repeat(101), "ivan@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.guestName").isString());
+  }
+
+  @Test
+  void bookingWithMalformedOrMissingEmailReturns400WithGuestEmailError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    book(typeId, "2026-11-12T10:00:00+03:00", "Иван Петров", "не-почта")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.guestEmail").isString());
+
+    mvc.perform(
+            post("/api/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"meetingTypeId": %d, "start": "2026-11-12T10:00:00+03:00",
+                     "guestName": "Иван Петров"}
+                    """
+                        .formatted(typeId)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.guestEmail").isString());
+  }
+
+  @Test
+  void bookingWithTooLongNoteReturns400WithNoteError() throws Exception {
+    long typeId = createMeetingType("Интервью", 60);
+
+    mvc.perform(
+            post("/api/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"meetingTypeId": %d, "start": "2026-11-12T10:00:00+03:00",
+                     "guestName": "Иван Петров", "guestEmail": "ivan@example.com",
+                     "note": "%s"}
+                    """
+                        .formatted(typeId, "а".repeat(1001))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.note").isString());
+  }
+}
