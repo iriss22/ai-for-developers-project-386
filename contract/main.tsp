@@ -4,6 +4,7 @@ import "@typespec/openapi3";
 
 using Http;
 using Rest;
+using OpenAPI;
 
 /**
  * Календарь звонков: контракт API.
@@ -70,7 +71,9 @@ enum MeetingDuration {
 
 /** Данные для создания типа встречи. */
 model NewMeetingType {
+  // Непустое после обрезки пробелов — как @NotBlank на бэкенде, то же правило во фронтенде
   @maxLength(100)
+  @pattern(".*\\S.*")
   name: string;
 
   @maxLength(1000)
@@ -79,6 +82,7 @@ model NewMeetingType {
   durationMinutes: MeetingDuration;
 }
 
+@tag("MeetingTypes")
 @route("/api/meeting-types")
 interface MeetingTypes {
   /** Список типов встреч. */
@@ -109,6 +113,7 @@ model Slot {
   status: SlotStatus;
 }
 
+@tag("Slots")
 @route("/api/slots")
 interface Slots {
   /**
@@ -142,7 +147,7 @@ model Booking {
   @maxLength(100)
   guestName: string;
 
-  @format("email")
+  @pattern("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
   guestEmail: string;
 
   @maxLength(1000)
@@ -158,16 +163,20 @@ model NewBooking {
   /** Старт слота: сетка 15 минут, внутри 9:00–18:00 владельца, в окне записи, не в прошлом. */
   start: offsetDateTime;
 
+  // Непустое после обрезки пробелов — то же правило во фронтенде (GuestFormStep.tsx)
   @maxLength(100)
+  @pattern(".*\\S.*")
   guestName: string;
 
-  @format("email")
+  // Та же проверка формата, что и в GuestFormStep.tsx — единственный источник: этот контракт
+  @pattern("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
   guestEmail: string;
 
   @maxLength(1000)
   note?: string;
 }
 
+@tag("Bookings")
 @route("/api/bookings")
 interface Bookings {
   /** Предстоящие записи владельца, по возрастанию старта, без пагинации. */

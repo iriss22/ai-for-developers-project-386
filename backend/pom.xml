@@ -35,8 +35,16 @@
 		<!-- 1.37.0 не работает со Spotless 3.10.4 и 3.11.0 (InvocationTargetException) -->
 		<google-java-format.version>1.36.1</google-java-format.version>
 		<cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
+		<openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
 	</properties>
 	<dependencies>
+		<!-- Аннотации @Schema/@Operation на сгенерированных серверных интерфейсах
+		     (openapi-generator-maven-plugin, generatorName=spring) -->
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-annotations-jakarta</artifactId>
+			<version>2.2.55</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -96,6 +104,38 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!-- Серверные интерфейсы и DTO из контракта (contract/main.tsp → contract/openapi.yaml,
+			     см. mise run generate). Контроллеры реализуют сгенерированные интерфейсы.
+			     interfaceOnly: сами контроллеры (бизнес-логика) пишем руками, генератор даёт
+			     только контракт в виде Java-интерфейсов и модели. -->
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi-generator-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>generate-server-interfaces</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/../contract/openapi.yaml</inputSpec>
+							<generatorName>spring</generatorName>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<apiPackage>io.hexlet.calendar.generated.api</apiPackage>
+							<modelPackage>io.hexlet.calendar.generated.model</modelPackage>
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+								<useSpringBoot3>true</useSpringBoot3>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<useTags>true</useTags>
+								<openApiNullable>false</openApiNullable>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

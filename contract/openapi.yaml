@@ -12,7 +12,10 @@ info:
 
     Термины — по GLOSSARY.md: Владелец, Гость, Тип встречи, Запись, Слот, Окно записи.
   version: 0.0.0
-tags: []
+tags:
+  - name: MeetingTypes
+  - name: Slots
+  - name: Bookings
 paths:
   /api/bookings:
     get:
@@ -28,6 +31,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Booking'
+      tags:
+        - Bookings
     post:
       operationId: Bookings_create
       description: Бронирование встречи.
@@ -57,6 +62,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConflictErrorResponse'
+      tags:
+        - Bookings
       requestBody:
         required: true
         content:
@@ -77,6 +84,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MeetingType'
+      tags:
+        - MeetingTypes
     post:
       operationId: MeetingTypes_create
       description: Создание типа встречи.
@@ -94,6 +103,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
+      tags:
+        - MeetingTypes
       requestBody:
         required: true
         content:
@@ -142,6 +153,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotFoundErrorResponse'
+      tags:
+        - Slots
 components:
   schemas:
     Booking:
@@ -167,7 +180,7 @@ components:
           maxLength: 100
         guestEmail:
           type: string
-          format: email
+          pattern: ^[^\s@]+@[^\s@]+\.[^\s@]+$
         note:
           anyOf:
             - type: string
@@ -251,9 +264,10 @@ components:
         guestName:
           type: string
           maxLength: 100
+          pattern: .*\S.*
         guestEmail:
           type: string
-          format: email
+          pattern: ^[^\s@]+@[^\s@]+\.[^\s@]+$
         note:
           type: string
           maxLength: 1000
@@ -267,6 +281,7 @@ components:
         name:
           type: string
           maxLength: 100
+          pattern: .*\S.*
         description:
           type: string
           maxLength: 1000
