@@ -48,4 +48,58 @@ class MeetingTypeApiTest {
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].name").value("Интервью"));
   }
+
+  @Test
+  void createMeetingTypeWithoutNameReturns400WithNameError() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "  ", "durationMinutes": 30}
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.name").isString());
+  }
+
+  @Test
+  void createMeetingTypeWithTooLongNameReturns400WithNameError() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "%s", "durationMinutes": 30}
+                    """
+                        .formatted("а".repeat(101))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.name").isString());
+  }
+
+  @Test
+  void createMeetingTypeWithTooLongDescriptionReturns400WithDescriptionError() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "Консультация", "description": "%s", "durationMinutes": 30}
+                    """
+                        .formatted("а".repeat(1001))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.description").isString());
+  }
+
+  @Test
+  void createMeetingTypeWithUnsupportedDurationReturns400WithDurationError() throws Exception {
+    mvc.perform(
+            post("/api/meeting-types")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"name": "Разбор резюме", "durationMinutes": 45}
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.durationMinutes").isString());
+  }
 }
