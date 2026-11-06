@@ -1,7 +1,7 @@
 import { Anchor, AppShell, Button, Group } from '@mantine/core'
 import { Link, Route, Routes } from 'react-router'
 import HomePage from './pages/HomePage.tsx'
-import StubPage from './pages/StubPage.tsx'
+import BookPage from './pages/BookPage.tsx'
 import AdminPage from './pages/AdminPage.tsx'
 
 function App() {
@@ -25,7 +25,7 @@ function App() {
       <AppShell.Main>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/book" element={<StubPage title="Запись на встречу" />} />
+          <Route path="/book" element={<BookPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </AppShell.Main>

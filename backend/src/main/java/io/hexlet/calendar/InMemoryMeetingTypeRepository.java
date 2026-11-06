@@ -1,6 +1,7 @@
 package io.hexlet.calendar;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,11 @@ public class InMemoryMeetingTypeRepository implements MeetingTypeRepository {
   @Override
   public List<MeetingType> findAll() {
     return List.copyOf(storage);
+  }
+
+  @Override
+  public Optional<MeetingType> findById(long id) {
+    return storage.stream().filter(meetingType -> meetingType.id() == id).findFirst();
   }
 
   @Override
