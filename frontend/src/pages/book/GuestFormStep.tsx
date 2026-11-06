@@ -13,6 +13,7 @@ type GuestFormStepProps = {
   onConflict: () => void
 }
 
+// То же правило, что EMAIL_PATTERN на бэкенде (BookingController): local@domain.tld без пробелов
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function GuestFormStep({ meetingType, start, onBooked, onConflict }: GuestFormStepProps) {

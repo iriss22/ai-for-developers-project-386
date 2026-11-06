@@ -306,6 +306,11 @@ class BookingApiTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors.guestEmail").isString());
 
+    // Правило то же, что на фронтенде: в домене обязательна точка
+    book(typeId, "2026-11-12T10:00:00+03:00", "Иван Петров", "a@b")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors.guestEmail").isString());
+
     mvc.perform(
             post("/api/bookings")
                 .contentType(MediaType.APPLICATION_JSON)

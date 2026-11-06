@@ -1,9 +1,9 @@
 package io.hexlet.calendar;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -53,13 +53,17 @@ public class BookingController {
     return BookingResponse.of(booking, type);
   }
 
+  // То же правило, что EMAIL_PATTERN во фронтенде (GuestFormStep): local@domain.tld без пробелов
+  private static final String EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+
   public record CreateBookingRequest(
       @NotNull(message = "Тип встречи обязателен") Long meetingTypeId,
       @NotNull(message = "Дата и время начала обязательны") OffsetDateTime start,
       @NotBlank(message = "Имя гостя обязательно")
           @Size(max = 100, message = "Имя гостя не длиннее 100 символов")
           String guestName,
-      @NotBlank(message = "Email гостя обязателен") @Email(message = "Некорректный формат email")
+      @NotBlank(message = "Email гостя обязателен")
+          @Pattern(regexp = EMAIL_PATTERN, message = "Некорректный формат email")
           String guestEmail,
       @Size(max = 1000, message = "Заметка не длиннее 1000 символов") String note) {}
 
