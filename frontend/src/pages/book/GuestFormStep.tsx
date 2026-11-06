@@ -15,7 +15,8 @@ type GuestFormStepProps = {
   onBack: () => void
 }
 
-// То же правило, что EMAIL_PATTERN на бэкенде (BookingController): local@domain.tld без пробелов
+// Правило — из contract/main.tsp (guestEmail в NewBooking): local@domain.tld без пробелов.
+// Проверка на клиенте — для мгновенной подсказки; серверная (из того же контракта) — источник правды.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const FORM_FIELDS = ['guestName', 'guestEmail', 'note'] as const
