@@ -1,4 +1,3 @@
-import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
 
@@ -11,23 +10,11 @@ const FRONTEND_PORT = 4399
 // (см. CALENDAR_API_PORT в frontend/vite.config.ts).
 const BACKEND_PORT_ENV_VAR = 'CALENDAR_API_PORT'
 
-function findBackendJar(): string {
-  const targetDir = join(import.meta.dirname, '../backend/target')
-  if (!existsSync(targetDir)) {
-    throw new Error(
-      `Не найден backend/target: ${targetDir}. Соберите jar перед e2e (mise run build:backend).`,
-    )
-  }
-  const jar = readdirSync(targetDir).find(
-    (name) => name.endsWith('.jar') && !name.endsWith('-sources.jar'),
-  )
-  if (!jar) {
-    throw new Error(
-      `В ${targetDir} нет jar-файла. Соберите jar перед e2e (mise run build:backend).`,
-    )
-  }
-  return join(targetDir, jar)
-}
+// Jar ищется шелл-командой, а не на этапе загрузки конфига: конфиг импортируют и
+// статические инструменты (knip) до того, как `mise run build:backend` соберёт jar,
+// и падать на этом импорте нельзя — упасть можно только когда webServer реально стартует.
+const BACKEND_TARGET_DIR = join(import.meta.dirname, '../backend/target')
+const BACKEND_JAR_COMMAND = `jar=$(ls "${BACKEND_TARGET_DIR}"/*.jar 2>/dev/null | grep -v -- '-sources.jar$' | head -n1); if [ -z "$jar" ]; then echo "В ${BACKEND_TARGET_DIR} нет jar-файла. Соберите jar перед e2e (mise run build:backend)." >&2; exit 1; fi; exec java -jar "$jar"`
 
 export default defineConfig({
   testDir: './e2e',
@@ -49,7 +36,7 @@ export default defineConfig({
   webServer: [
     {
       // Собранный бэкенд на свободном порту с пустым in-memory хранилищем (свежий процесс).
-      command: `java -jar ${findBackendJar()}`,
+      command: `sh -c '${BACKEND_JAR_COMMAND}'`,
       env: { SERVER_PORT: String(BACKEND_PORT) },
       url: `http://localhost:${BACKEND_PORT}/api/meeting-types`,
       reuseExistingServer: false,
