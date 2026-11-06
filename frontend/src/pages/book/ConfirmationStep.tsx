@@ -1,6 +1,6 @@
 import { Card, Stack, Text, Title } from '@mantine/core'
 import type { Booking } from '../../api/bookings.ts'
-import { formatDateRu, OWNER_TIME_ZONE, slotTime } from './ownerTime.ts'
+import { formatDateRu, OWNER_TIME_ZONE, slotTime } from '../../ownerTime.ts'
 
 type ConfirmationStepProps = {
   booking: Booking

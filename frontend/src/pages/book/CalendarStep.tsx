@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { fetchSlots, type Slot } from '../../api/slots.ts'
 import type { MeetingType } from '../../api/meetingTypes.ts'
 import Calendar from './Calendar.tsx'
-import { addDays, formatDateRu, OWNER_TIME_ZONE, slotTime, todayInOwnerZone } from './ownerTime.ts'
+import {
+  addDays,
+  formatDateRu,
+  OWNER_TIME_ZONE,
+  slotTime,
+  todayInOwnerZone,
+} from '../../ownerTime.ts'
 
 type SlotsResult = { status: 'ready'; slots: Slot[] } | { status: 'error' }
 

@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Modal, Radio, Stack, Textarea, TextInput } from '@mantine/core'
 import { useState, type FormEvent } from 'react'
-import { ApiError, createMeetingType, type MeetingType } from '../../api/meetingTypes.ts'
+import { ApiError } from '../../api/client.ts'
+import { createMeetingType, type MeetingType } from '../../api/meetingTypes.ts'
 import { unshownFieldErrors } from '../../formErrors.ts'
 
 type MeetingTypeFormProps = {

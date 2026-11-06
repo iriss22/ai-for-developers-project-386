@@ -1,7 +1,7 @@
 import { Alert, Button, Card, Center, Loader, Stack, Text } from '@mantine/core'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { fetchBookings, type Booking } from '../../api/bookings.ts'
-import { formatOwnerInterval } from '../book/ownerTime.ts'
+import { formatOwnerInterval } from '../../ownerTime.ts'
 
 type LoadState =
   | { status: 'loading' }

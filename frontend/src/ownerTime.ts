@@ -1,8 +1,10 @@
-// Часовой пояс владельца — тот же, что в конфигурации бэкенда (calendar.owner-timezone).
-// В нём заданы границы дня и окно записи; гость видит время в нём же, конвертации нет.
+// Часовой пояс владельца. ДОЛЖЕН совпадать с calendar.owner-timezone бэкенда
+// (backend/src/main/resources/application.properties): в нём заданы границы дня и окно записи,
+// гость видит время в нём же, конвертации нет.
 export const OWNER_TIME_ZONE = 'Europe/Moscow'
 
-const ownerDateFormatter = new Intl.DateTimeFormat('en-CA', {
+// en-CA даёт дату в формате 'YYYY-MM-DD'
+const ownerIsoDateFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: OWNER_TIME_ZONE,
   year: 'numeric',
   month: '2-digit',
@@ -10,7 +12,7 @@ const ownerDateFormatter = new Intl.DateTimeFormat('en-CA', {
 })
 
 export function todayInOwnerZone(): string {
-  return ownerDateFormatter.format(new Date())
+  return ownerIsoDateFormatter.format(new Date())
 }
 
 export function addDays(date: string, days: number): string {
@@ -29,7 +31,7 @@ export function slotTime(start: string): string {
   return start.slice(11, 16)
 }
 
-const ownerDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
+const ownerDateFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: OWNER_TIME_ZONE,
   day: '2-digit',
   month: '2-digit',
@@ -47,7 +49,7 @@ const ownerTimeOnlyFormatter = new Intl.DateTimeFormat('ru-RU', {
 export function formatOwnerInterval(startIso: string, durationMinutes: number): string {
   const start = new Date(startIso)
   const end = new Date(start.getTime() + durationMinutes * 60_000)
-  const date = ownerDateTimeFormatter.format(start)
+  const date = ownerDateFormatter.format(start)
   const startTime = ownerTimeOnlyFormatter.format(start)
   const endTime = ownerTimeOnlyFormatter.format(end)
   return `${date}, ${startTime}–${endTime} (${OWNER_TIME_ZONE})`

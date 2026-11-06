@@ -1,10 +1,10 @@
 import { Alert, Button, Group, Stack, Text, Textarea, TextInput } from '@mantine/core'
 import { useState, type FormEvent } from 'react'
-import { ApiError } from '../../api/meetingTypes.ts'
+import { ApiError } from '../../api/client.ts'
 import { createBooking, type Booking } from '../../api/bookings.ts'
 import type { MeetingType } from '../../api/meetingTypes.ts'
 import { unshownFieldErrors } from '../../formErrors.ts'
-import { formatDateRu, OWNER_TIME_ZONE, slotTime } from './ownerTime.ts'
+import { formatDateRu, OWNER_TIME_ZONE, slotTime } from '../../ownerTime.ts'
 
 type GuestFormStepProps = {
   meetingType: MeetingType

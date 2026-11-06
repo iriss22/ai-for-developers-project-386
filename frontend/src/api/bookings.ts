@@ -1,4 +1,4 @@
-import { ApiError } from './meetingTypes.ts'
+import { getJson, postJson } from './client.ts'
 
 type BookingMeetingType = {
   id: number
@@ -15,7 +15,7 @@ export type Booking = {
   meetingType: BookingMeetingType
 }
 
-export type NewBooking = {
+type NewBooking = {
   meetingTypeId: number
   start: string
   guestName: string
@@ -23,26 +23,10 @@ export type NewBooking = {
   note?: string
 }
 
-export async function fetchBookings(): Promise<Booking[]> {
-  const response = await fetch('/api/bookings')
-  if (!response.ok) {
-    throw new ApiError(response.status)
-  }
-  return response.json()
+export function fetchBookings(): Promise<Booking[]> {
+  return getJson('/api/bookings')
 }
 
-export async function createBooking(payload: NewBooking): Promise<Booking> {
-  const response = await fetch('/api/bookings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (response.status === 400) {
-    const body = (await response.json()) as { errors?: Record<string, string> }
-    throw new ApiError(400, body.errors ?? {})
-  }
-  if (!response.ok) {
-    throw new ApiError(response.status)
-  }
-  return response.json()
+export function createBooking(payload: NewBooking): Promise<Booking> {
+  return postJson('/api/bookings', payload)
 }
