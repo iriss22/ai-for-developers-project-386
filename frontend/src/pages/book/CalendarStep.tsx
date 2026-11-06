@@ -1,8 +1,8 @@
-import { Alert, Button, Card, Center, Group, Loader, SimpleGrid, Stack, Text } from '@mantine/core'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { fetchSlots, type Slot } from '../../api/slots.ts'
+import { Alert, Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core'
+import { useCallback, useMemo } from 'react'
+import { fetchSlots } from '../../api/slots.ts'
 import type { MeetingType } from '../../api/meetingTypes.ts'
-import Calendar from './Calendar.tsx'
+import { LoadError, Loading } from '../../components/LoadStatus.tsx'
 import {
   addDays,
   formatDateRu,
@@ -10,8 +10,53 @@ import {
   slotTime,
   todayInOwnerZone,
 } from '../../ownerTime.ts'
+import { useLoad } from '../../useLoad.ts'
+import Calendar from './Calendar.tsx'
 
-type SlotsResult = { status: 'ready'; slots: Slot[] } | { status: 'error' }
+type SlotListProps = {
+  meetingTypeId: number
+  date: string
+  selectedSlot: string | null
+  onSelectSlot: (slot: string) => void
+  reloadToken: number
+}
+
+function SlotList({ meetingTypeId, date, selectedSlot, onSelectSlot, reloadToken }: SlotListProps) {
+  const load = useCallback(() => fetchSlots(meetingTypeId, date), [meetingTypeId, date])
+  const { state, retry } = useLoad(load, reloadToken)
+
+  if (state.status === 'loading') {
+    return <Loading />
+  }
+  if (state.status === 'error') {
+    return <LoadError title="Не удалось загрузить слоты" onRetry={retry} />
+  }
+  // Заглушка — только когда слотов нет вовсе; занятые слоты показываются с меткой «Занято»
+  if (state.data.length === 0) {
+    return <Text c="dimmed">Нет свободных слотов</Text>
+  }
+  return (
+    <SimpleGrid cols={4} spacing="xs">
+      {state.data.map((slot) =>
+        slot.status === 'free' ? (
+          <Button
+            key={slot.start}
+            size="compact-sm"
+            variant={selectedSlot === slot.start ? 'filled' : 'light'}
+            onClick={() => onSelectSlot(slot.start)}
+          >
+            {slotTime(slot.start)}
+          </Button>
+        ) : (
+          // Занятый слот виден гостю с меткой «Занято», но недоступен для выбора
+          <Button key={slot.start} size="compact-sm" variant="light" color="gray" disabled>
+            {slotTime(slot.start)} · Занято
+          </Button>
+        ),
+      )}
+    </SimpleGrid>
+  )
+}
 
 type CalendarStepProps = {
   meetingType: MeetingType
@@ -40,86 +85,6 @@ function CalendarStep({
 }: CalendarStepProps) {
   const windowStart = useMemo(() => todayInOwnerZone(), [])
   const windowEnd = useMemo(() => addDays(windowStart, 13), [windowStart])
-
-  // Кнопка «Повторить» при ошибке загрузки перезапрашивает слоты
-  const [retryToken, setRetryToken] = useState(0)
-  const requestKey = `${selectedDate ?? ''}#${reloadToken}#${retryToken}`
-  // Результат последнего завершённого запроса слотов; пока ключ не совпал — идёт загрузка
-  const [result, setResult] = useState<{ key: string; value: SlotsResult } | null>(null)
-
-  useEffect(() => {
-    if (!selectedDate) {
-      return
-    }
-    const key = `${selectedDate}#${reloadToken}#${retryToken}`
-    let cancelled = false
-    fetchSlots(meetingType.id, selectedDate)
-      .then((slots) => {
-        if (!cancelled) {
-          setResult({ key, value: { status: 'ready', slots } })
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setResult({ key, value: { status: 'error' } })
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [selectedDate, reloadToken, retryToken, meetingType.id])
-
-  const retry = useCallback(() => {
-    setRetryToken((token) => token + 1)
-  }, [])
-
-  const current = result?.key === requestKey ? result.value : null
-
-  let slotsContent: ReactNode = <Text c="dimmed">Выберите дату в календаре</Text>
-  if (selectedDate && current === null) {
-    slotsContent = (
-      <Center py="md">
-        <output aria-label="Загрузка">
-          <Loader />
-        </output>
-      </Center>
-    )
-  } else if (current?.status === 'error') {
-    slotsContent = (
-      <Alert color="red" title="Не удалось загрузить слоты">
-        <Button variant="outline" color="red" size="xs" mt="sm" onClick={retry}>
-          Повторить
-        </Button>
-      </Alert>
-    )
-  } else if (current?.status === 'ready') {
-    // Заглушка — только когда слотов нет вовсе; занятые слоты показываются с меткой «Занято»
-    if (current.slots.length === 0) {
-      slotsContent = <Text c="dimmed">Нет свободных слотов</Text>
-    } else {
-      slotsContent = (
-        <SimpleGrid cols={4} spacing="xs">
-          {current.slots.map((slot) =>
-            slot.status === 'free' ? (
-              <Button
-                key={slot.start}
-                size="compact-sm"
-                variant={selectedSlot === slot.start ? 'filled' : 'light'}
-                onClick={() => onSelectSlot(slot.start)}
-              >
-                {slotTime(slot.start)}
-              </Button>
-            ) : (
-              // Занятый слот виден гостю с меткой «Занято», но недоступен для выбора
-              <Button key={slot.start} size="compact-sm" variant="light" color="gray" disabled>
-                {slotTime(slot.start)} · Занято
-              </Button>
-            ),
-          )}
-        </SimpleGrid>
-      )
-    }
-  }
 
   return (
     <Group align="flex-start" gap="lg" mt="md">
@@ -169,7 +134,17 @@ function CalendarStep({
           <Text size="xs" c="dimmed" mb="xs">
             Часовой пояс владельца: {OWNER_TIME_ZONE}
           </Text>
-          {slotsContent}
+          {selectedDate ? (
+            <SlotList
+              meetingTypeId={meetingType.id}
+              date={selectedDate}
+              selectedSlot={selectedSlot}
+              onSelectSlot={onSelectSlot}
+              reloadToken={reloadToken}
+            />
+          ) : (
+            <Text c="dimmed">Выберите дату в календаре</Text>
+          )}
         </section>
       </Stack>
     </Group>

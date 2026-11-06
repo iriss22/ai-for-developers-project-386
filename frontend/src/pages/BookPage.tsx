@@ -1,32 +1,17 @@
-import {
-  Alert,
-  Button,
-  Card,
-  Center,
-  Container,
-  Loader,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  UnstyledButton,
-} from '@mantine/core'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Card, Container, SimpleGrid, Stack, Text, Title, UnstyledButton } from '@mantine/core'
+import { useCallback, useState, type ReactNode } from 'react'
 import { fetchMeetingTypes, type MeetingType } from '../api/meetingTypes.ts'
 import type { Booking } from '../api/bookings.ts'
+import { LoadError, Loading } from '../components/LoadStatus.tsx'
+import { useLoad } from '../useLoad.ts'
 import CalendarStep from './book/CalendarStep.tsx'
 import ConfirmationStep from './book/ConfirmationStep.tsx'
 import GuestFormStep from './book/GuestFormStep.tsx'
 
-type TypesState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; types: MeetingType[] }
-
 type Step = 'types' | 'slots' | 'form' | 'confirmation'
 
 function BookPage() {
-  const [typesState, setTypesState] = useState<TypesState>({ status: 'loading' })
+  const { state: typesState, retry } = useLoad(fetchMeetingTypes)
   const [step, setStep] = useState<Step>('types')
   const [selectedType, setSelectedType] = useState<MeetingType | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -34,21 +19,6 @@ function BookPage() {
   const [slotsReloadToken, setSlotsReloadToken] = useState(0)
   const [slotTaken, setSlotTaken] = useState(false)
   const [booking, setBooking] = useState<Booking | null>(null)
-
-  const load = useCallback(() => {
-    fetchMeetingTypes()
-      .then((types) => setTypesState({ status: 'ready', types }))
-      .catch(() => setTypesState({ status: 'error' }))
-  }, [])
-
-  const retry = useCallback(() => {
-    setTypesState({ status: 'loading' })
-    load()
-  }, [load])
-
-  useEffect(() => {
-    load()
-  }, [load])
 
   const selectType = useCallback((type: MeetingType) => {
     setSelectedType(type)
@@ -110,27 +80,15 @@ function BookPage() {
       />
     )
   } else if (typesState.status === 'loading') {
-    content = (
-      <Center py="xl">
-        <output aria-label="Загрузка">
-          <Loader />
-        </output>
-      </Center>
-    )
+    content = <Loading />
   } else if (typesState.status === 'error') {
-    content = (
-      <Alert color="red" title="Не удалось загрузить типы встреч">
-        <Button variant="outline" color="red" size="xs" mt="sm" onClick={retry}>
-          Повторить
-        </Button>
-      </Alert>
-    )
-  } else if (typesState.types.length === 0) {
+    content = <LoadError title="Не удалось загрузить типы встреч" onRetry={retry} />
+  } else if (typesState.data.length === 0) {
     content = <Text c="dimmed">Пока нет доступных встреч</Text>
   } else {
     content = (
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        {typesState.types.map((type) => (
+        {typesState.data.map((type) => (
           <UnstyledButton key={type.id} onClick={() => selectType(type)}>
             <Card withBorder padding="md" h="100%">
               <Text fw={600}>{type.name}</Text>

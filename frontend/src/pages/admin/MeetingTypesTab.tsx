@@ -1,61 +1,30 @@
-import { Alert, Button, Card, Center, Group, Loader, Stack, Text } from '@mantine/core'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Button, Card, Group, Stack, Text } from '@mantine/core'
+import { useCallback, useState, type ReactNode } from 'react'
 import { fetchMeetingTypes, type MeetingType } from '../../api/meetingTypes.ts'
+import { LoadError, Loading } from '../../components/LoadStatus.tsx'
+import { useLoad } from '../../useLoad.ts'
 import MeetingTypeForm from './MeetingTypeForm.tsx'
 
-type LoadState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; types: MeetingType[] }
-
 function MeetingTypesTab() {
-  const [state, setState] = useState<LoadState>({ status: 'loading' })
+  const { state, retry, update } = useLoad(fetchMeetingTypes)
   const [formOpened, setFormOpened] = useState(false)
 
-  const load = useCallback(() => {
-    fetchMeetingTypes()
-      .then((types) => setState({ status: 'ready', types }))
-      .catch(() => setState({ status: 'error' }))
-  }, [])
-
-  const retry = useCallback(() => {
-    setState({ status: 'loading' })
-    load()
-  }, [load])
-
-  const handleCreated = useCallback((created: MeetingType) => {
-    setState((prev) =>
-      prev.status === 'ready' ? { status: 'ready', types: [...prev.types, created] } : prev,
-    )
-  }, [])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const handleCreated = useCallback(
+    (created: MeetingType) => update((types) => [...types, created]),
+    [update],
+  )
 
   let content: ReactNode
   if (state.status === 'loading') {
-    content = (
-      <Center py="xl">
-        <output aria-label="Загрузка">
-          <Loader />
-        </output>
-      </Center>
-    )
+    content = <Loading />
   } else if (state.status === 'error') {
-    content = (
-      <Alert color="red" title="Не удалось загрузить типы встреч">
-        <Button variant="outline" color="red" size="xs" mt="sm" onClick={retry}>
-          Повторить
-        </Button>
-      </Alert>
-    )
-  } else if (state.types.length === 0) {
+    content = <LoadError title="Не удалось загрузить типы встреч" onRetry={retry} />
+  } else if (state.data.length === 0) {
     content = <Text c="dimmed">Пока нет типов встреч</Text>
   } else {
     content = (
       <Stack gap="sm">
-        {state.types.map((type) => (
+        {state.data.map((type) => (
           <Card key={type.id} withBorder padding="md">
             <Text fw={600}>{type.name}</Text>
             {type.description && (
