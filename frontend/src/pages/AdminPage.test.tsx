@@ -1,6 +1,6 @@
 import { MantineProvider } from '@mantine/core'
-import { render, screen } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '../test/server.ts'
 import { theme } from '../theme.ts'
@@ -37,5 +37,34 @@ describe('Админка: вкладка «Типы встреч»', () => {
     expect(screen.getByText('60 мин')).toBeInTheDocument()
     expect(screen.getByText('Разбор резюме')).toBeInTheDocument()
     expect(screen.getByText('30 мин')).toBeInTheDocument()
+  })
+
+  it('показывает индикатор загрузки, пока список загружается', async () => {
+    server.use(
+      http.get('/api/meeting-types', async () => {
+        await delay(100)
+        return HttpResponse.json([])
+      }),
+    )
+    renderAdmin()
+
+    expect(screen.getByRole('status', { name: 'Загрузка' })).toBeInTheDocument()
+    expect(await screen.findByText('Пока нет типов встреч')).toBeInTheDocument()
+  })
+
+  it('показывает сообщение об ошибке с кнопкой «Повторить» и загружает список повторно', async () => {
+    server.use(http.get('/api/meeting-types', () => HttpResponse.error()))
+    renderAdmin()
+
+    expect(await screen.findByText('Не удалось загрузить типы встреч')).toBeInTheDocument()
+
+    server.use(
+      http.get('/api/meeting-types', () =>
+        HttpResponse.json([{ id: 1, name: 'Интервью', description: null, durationMinutes: 60 }]),
+      ),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить' }))
+
+    expect(await screen.findByText('Интервью')).toBeInTheDocument()
   })
 })
