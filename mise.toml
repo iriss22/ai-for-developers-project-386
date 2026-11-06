@@ -28,8 +28,8 @@ depends = ["deps"]
 run = "hk install --mise"
 
 [tasks.deps]
-description = "Установить зависимости: инструменты репозитория (commitlint) и фронтенд"
-depends = ["deps:root", "deps:frontend"]
+description = "Установить зависимости: инструменты репозитория (commitlint), фронтенд, браузер Playwright"
+depends = ["deps:root", "deps:frontend", "deps:e2e"]
 
 [tasks."deps:root"]
 run = "npm ci"
@@ -38,15 +38,23 @@ run = "npm ci"
 dir = "frontend"
 run = "npm ci"
 
+[tasks."deps:e2e"]
+description = "Браузер для Playwright (test:e2e); --with-deps ставит системные зависимости в CI"
+dir = "frontend"
+depends = ["deps:frontend"]
+run = "npx playwright install --with-deps chromium"
+
 # ---------- проверки ----------
 
 [tasks.check]
 description = "Все проверки: линтеры, типы, тесты, сборка. Эту же команду запускает CI"
-# последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/
+# последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/;
+# test:e2e нужен собранный jar и собранный фронтенд, поэтому идёт после build
 run = [
   { task = "lint" },
   { task = "test" },
   { task = "build" },
+  { task = "test:e2e" },
 ]
 
 [tasks.lint]
@@ -82,6 +90,13 @@ run = "npm test"
 [tasks."test:backend"]
 dir = "backend"
 run = "./mvnw -B -q test"
+
+[tasks."test:e2e"]
+description = "Playwright против собранного бэкенда (jar) и собранного фронтенда"
+dir = "frontend"
+# нужен собранный jar и dist/, поэтому явная зависимость, а не только порядок в check
+depends = ["build"]
+run = "npx playwright test"
 
 [tasks.build]
 description = "Production-сборка фронтенда и jar бэкенда"
