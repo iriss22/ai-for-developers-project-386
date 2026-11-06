@@ -1,21 +1,17 @@
 package io.hexlet.calendar;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import io.hexlet.calendar.generated.api.MeetingTypesApi;
+import io.hexlet.calendar.generated.model.MeetingDuration;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+// Реализует сгенерированный из contract/main.tsp интерфейс (mise run generate):
+// аннотации @RequestMapping/@Valid/@RequestBody — на методах интерфейса, Spring MVC их наследует.
 @RestController
-@RequestMapping("/api/meeting-types")
-public class MeetingTypeController {
+public class MeetingTypeController implements MeetingTypesApi {
 
   private final MeetingTypeService service;
 
@@ -23,21 +19,33 @@ public class MeetingTypeController {
     this.service = service;
   }
 
-  @GetMapping
-  public List<MeetingType> list() {
-    return service.findAll();
+  @Override
+  public ResponseEntity<List<io.hexlet.calendar.generated.model.MeetingType>> meetingTypesList() {
+    return ResponseEntity.ok(service.findAll().stream().map(MeetingTypeController::toDto).toList());
   }
 
-  @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public MeetingType create(@Valid @RequestBody CreateMeetingTypeRequest request) {
-    return service.create(request.name(), request.description(), request.durationMinutes());
+  @Override
+  public ResponseEntity<io.hexlet.calendar.generated.model.MeetingType> meetingTypesCreate(
+      io.hexlet.calendar.generated.model.NewMeetingType newMeetingType) {
+    MeetingType created =
+        service.create(
+            new NewMeetingType(
+                newMeetingType.getName(),
+                newMeetingType.getDescription(),
+                durationOf(newMeetingType.getDurationMinutes())));
+    return ResponseEntity.status(HttpStatus.CREATED).body(toDto(created));
   }
 
-  public record CreateMeetingTypeRequest(
-      @NotBlank(message = "Название обязательно")
-          @Size(max = 100, message = "Название не длиннее 100 символов")
-          String name,
-      @Size(max = 1000, message = "Описание не длиннее 1000 символов") String description,
-      @NotNull(message = "Длительность должна быть 15, 30 или 60 минут") Integer durationMinutes) {}
+  private static io.hexlet.calendar.generated.model.MeetingType toDto(MeetingType type) {
+    return new io.hexlet.calendar.generated.model.MeetingType(
+        type.id(), type.name(), type.description(), durationDto(type.durationMinutes()));
+  }
+
+  private static MeetingDuration durationDto(int durationMinutes) {
+    return MeetingDuration.fromValue(BigDecimal.valueOf(durationMinutes));
+  }
+
+  private static int durationOf(MeetingDuration duration) {
+    return duration.getValue().intValueExact();
+  }
 }

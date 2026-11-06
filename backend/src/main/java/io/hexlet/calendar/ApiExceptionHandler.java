@@ -18,7 +18,7 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<Map<String, Map<String, String>>> handleValidation(ValidationException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("errors", ex.getErrors()));
+    return badRequest(ex.getErrors());
   }
 
   @ExceptionHandler(NotFoundException.class)
@@ -38,7 +38,7 @@ public class ApiExceptionHandler {
     ex.getBindingResult()
         .getFieldErrors()
         .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("errors", errors));
+    return badRequest(errors);
   }
 
   // Битый JSON или неверный тип поля в теле: ответ приводим к форме {"errors": {"<поле>": "…"}}
@@ -54,23 +54,27 @@ public class ApiExceptionHandler {
               .findFirst()
               .orElse(field);
     }
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(Map.of("errors", Map.of(field, "Некорректное значение")));
+    return badRequest(Map.of(field, "Некорректное значение"));
   }
 
   // Неверный тип параметра запроса (например, meetingTypeId=abc)
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
   public ResponseEntity<Map<String, Map<String, String>>> handleTypeMismatch(
       MethodArgumentTypeMismatchException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(Map.of("errors", Map.of(ex.getName(), "Некорректное значение параметра")));
+    return badRequest(Map.of(ex.getName(), "Некорректное значение параметра"));
   }
 
   // Обязательный параметр запроса не передан (например, GET /api/slots без date)
   @ExceptionHandler(MissingServletRequestParameterException.class)
   public ResponseEntity<Map<String, Map<String, String>>> handleMissingParameter(
       MissingServletRequestParameterException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(Map.of("errors", Map.of(ex.getParameterName(), "Обязательный параметр")));
+    return badRequest(Map.of(ex.getParameterName(), "Обязательный параметр"));
+  }
+
+  // Общий хелпер для тела 400: {"errors": {"<поле>": "<сообщение>"}} (contract/main.tsp,
+  // модель ValidationErrorResponse)
+  private static ResponseEntity<Map<String, Map<String, String>>> badRequest(
+      Map<String, String> errors) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("errors", errors));
   }
 }

@@ -14,22 +14,23 @@ public class BookingService {
 
   private final BookingRepository bookingRepository;
   private final MeetingTypeService meetingTypeService;
-  private final OwnerSchedule schedule;
+  private final OwnerCalendar ownerCalendar;
 
   public BookingService(
       BookingRepository bookingRepository,
       MeetingTypeService meetingTypeService,
-      OwnerSchedule schedule) {
+      OwnerCalendar ownerCalendar) {
     this.bookingRepository = bookingRepository;
     this.meetingTypeService = meetingTypeService;
-    this.schedule = schedule;
+    this.ownerCalendar = ownerCalendar;
   }
 
   // synchronized: проверка пересечения и сохранение атомарны, гонку двух гостей решает сервер
   public synchronized ScheduledBooking create(NewBooking command) {
     MeetingType type = meetingTypeService.getById(command.meetingTypeId());
     validateStart(command.start(), type);
-    if (schedule.isBusy(BookingInterval.of(command.start().toInstant(), type.durationMinutes()))) {
+    if (ownerCalendar.isBusy(
+        BookingInterval.of(command.start().toInstant(), type.durationMinutes()))) {
       throw new ConflictException("Это время уже занято");
     }
     Booking saved =
@@ -47,7 +48,7 @@ public class BookingService {
   // Старт записи — старт слота: сетка 15 минут, слот целиком внутри 9:00–18:00,
   // дата в окне записи, время ещё не прошло (всё — в часовом поясе владельца)
   private void validateStart(OffsetDateTime start, MeetingType type) {
-    ZonedDateTime localStart = start.atZoneSameInstant(schedule.zone());
+    ZonedDateTime localStart = start.atZoneSameInstant(ownerCalendar.zone());
     LocalTime time = localStart.toLocalTime();
     if (time.getMinute() % CalendarRules.GRID_STEP_MINUTES != 0
         || time.getSecond() != 0
@@ -60,11 +61,11 @@ public class BookingService {
       throw new ValidationException(
           Map.of("start", "Слот должен целиком умещаться в границы 9:00–18:00"));
     }
-    if (!schedule.isInBookingWindow(localStart.toLocalDate())) {
+    if (!ownerCalendar.isInBookingWindow(localStart.toLocalDate())) {
       throw new ValidationException(
           Map.of("start", "Дата должна быть в окне записи — 14 дней включая сегодня"));
     }
-    if (!start.toInstant().isAfter(schedule.now())) {
+    if (!start.toInstant().isAfter(ownerCalendar.now())) {
       throw new ValidationException(Map.of("start", "Это время уже прошло"));
     }
   }
@@ -72,8 +73,8 @@ public class BookingService {
   // Предстоящие записи по возрастанию старта. «Прошедшая» — следствие текущего времени:
   // запись выпадает из списка, когда её интервал [start, start + длительность типа) прошёл
   public List<ScheduledBooking> findUpcoming() {
-    Instant now = schedule.now();
-    return schedule.bookings().stream()
+    Instant now = ownerCalendar.now();
+    return ownerCalendar.bookings().stream()
         .filter(scheduled -> scheduled.interval().end().isAfter(now))
         .sorted(Comparator.comparing(scheduled -> scheduled.interval().start()))
         .toList();

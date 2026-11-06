@@ -8,18 +8,18 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * Расписание владельца: «сейчас», окно записи и занятость. Общие правила для списка слотов и
+ * Контекст владельца: «сейчас», окно записи и занятость. Общие правила для списка слотов и
  * бронирования, чтобы слот, показанный свободным, и запись проверялись одинаково.
  */
 @Component
-public class OwnerSchedule {
+public class OwnerCalendar {
 
   private final BookingRepository bookingRepository;
   private final MeetingTypeRepository meetingTypeRepository;
   private final Clock clock;
   private final ZoneId ownerZone;
 
-  public OwnerSchedule(
+  public OwnerCalendar(
       BookingRepository bookingRepository,
       MeetingTypeRepository meetingTypeRepository,
       Clock clock,

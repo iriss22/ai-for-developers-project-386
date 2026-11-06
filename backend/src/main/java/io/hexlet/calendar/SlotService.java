@@ -13,30 +13,30 @@ import org.springframework.stereotype.Service;
 public class SlotService {
 
   private final MeetingTypeService meetingTypeService;
-  private final OwnerSchedule schedule;
+  private final OwnerCalendar ownerCalendar;
 
-  public SlotService(MeetingTypeService meetingTypeService, OwnerSchedule schedule) {
+  public SlotService(MeetingTypeService meetingTypeService, OwnerCalendar ownerCalendar) {
     this.meetingTypeService = meetingTypeService;
-    this.schedule = schedule;
+    this.ownerCalendar = ownerCalendar;
   }
 
   public List<Slot> slotsFor(long meetingTypeId, LocalDate date) {
     MeetingType type = meetingTypeService.getById(meetingTypeId);
-    if (!schedule.isInBookingWindow(date)) {
+    if (!ownerCalendar.isInBookingWindow(date)) {
       return List.of();
     }
 
-    Instant now = schedule.now();
+    Instant now = ownerCalendar.now();
     List<Slot> slots = new ArrayList<>();
     for (LocalTime start = CalendarRules.DAY_START;
         !start.plusMinutes(type.durationMinutes()).isAfter(CalendarRules.DAY_END);
         start = start.plusMinutes(CalendarRules.GRID_STEP_MINUTES)) {
-      ZonedDateTime slotStart = ZonedDateTime.of(date, start, schedule.zone());
+      ZonedDateTime slotStart = ZonedDateTime.of(date, start, ownerCalendar.zone());
       if (!slotStart.toInstant().isAfter(now)) {
         continue;
       }
       BookingInterval slot = BookingInterval.of(slotStart.toInstant(), type.durationMinutes());
-      SlotStatus status = schedule.isBusy(slot) ? SlotStatus.BUSY : SlotStatus.FREE;
+      SlotStatus status = ownerCalendar.isBusy(slot) ? SlotStatus.BUSY : SlotStatus.FREE;
       slots.add(new Slot(slotStart.toOffsetDateTime(), status));
     }
     return slots;
