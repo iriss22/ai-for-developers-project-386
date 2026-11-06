@@ -6,7 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +26,16 @@ public class BookingController {
       BookingService bookingService, MeetingTypeRepository meetingTypeRepository) {
     this.bookingService = bookingService;
     this.meetingTypeRepository = meetingTypeRepository;
+  }
+
+  @GetMapping
+  public List<BookingResponse> list() {
+    return bookingService.findUpcoming().stream()
+        .map(
+            booking ->
+                BookingResponse.of(
+                    booking, meetingTypeRepository.findById(booking.meetingTypeId()).orElseThrow()))
+        .toList();
   }
 
   @PostMapping

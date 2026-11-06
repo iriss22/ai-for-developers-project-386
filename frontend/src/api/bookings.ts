@@ -23,6 +23,14 @@ export type NewBooking = {
   note?: string
 }
 
+export async function fetchBookings(): Promise<Booking[]> {
+  const response = await fetch('/api/bookings')
+  if (!response.ok) {
+    throw new ApiError(response.status)
+  }
+  return response.json()
+}
+
 export async function createBooking(payload: NewBooking): Promise<Booking> {
   const response = await fetch('/api/bookings', {
     method: 'POST',
