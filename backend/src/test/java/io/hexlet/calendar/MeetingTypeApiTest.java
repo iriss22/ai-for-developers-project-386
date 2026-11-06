@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,7 @@ class MeetingTypeApiTest {
   @Autowired private MockMvc mvc;
 
   @Test
+  @DisplayName("пустое хранилище — пустой список типов встреч")
   void listMeetingTypesReturnsEmptyArrayOnEmptyStorage() throws Exception {
     mvc.perform(get("/api/meeting-types"))
         .andExpect(status().isOk())
@@ -29,6 +31,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("созданный тип встречи — 201 и появляется в списке")
   void createMeetingTypeReturnsCreatedAndAppearsInList() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -50,6 +53,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("пустое название — 400 с ошибкой name")
   void createMeetingTypeWithoutNameReturns400WithNameError() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -63,6 +67,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("название длиннее 100 символов — 400 с ошибкой name")
   void createMeetingTypeWithTooLongNameReturns400WithNameError() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -77,6 +82,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("описание длиннее 1000 символов — 400 с ошибкой description")
   void createMeetingTypeWithTooLongDescriptionReturns400WithDescriptionError() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -91,6 +97,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("длительность не 15/30/60 — 400 с ошибкой durationMinutes")
   void createMeetingTypeWithUnsupportedDurationReturns400WithDurationError() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -104,6 +111,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("название типа встречи хранится как введено")
   void meetingTypeNameIsStoredAsEntered() throws Exception {
     mvc.perform(
             post("/api/meeting-types")
@@ -121,6 +129,7 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  @DisplayName("дубль названия без учёта регистра и пробелов — 400 с ошибкой name")
   void createMeetingTypeWithDuplicateNameIgnoringCaseAndSpacesReturns400WithNameError()
       throws Exception {
     mvc.perform(

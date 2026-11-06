@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Clock;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -58,6 +59,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("дата в окне записи — свободные слоты на сетке 15 минут")
   void slotsForDateInsideWindowReturnsFreeSlotsOnQuarterHourGrid() throws Exception {
     long typeId = createMeetingType(30);
 
@@ -72,6 +74,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("последний старт зависит от длительности: слот умещается в границы дня")
   void lastStartDependsOnDurationSoSlotFitsInsideDayBounds() throws Exception {
     long type15 = createMeetingType(15);
     long type60 = createMeetingType(60);
@@ -90,6 +93,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("прошедшие слоты сегодняшнего дня не возвращаются")
   void pastSlotsOfTodayAreNotReturned() throws Exception {
     long typeId = createMeetingType(30);
 
@@ -101,6 +105,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("дата вне окна записи — пустой массив")
   void dateOutsideBookingWindowReturnsEmptyArray() throws Exception {
     long typeId = createMeetingType(15);
 
@@ -119,6 +124,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("нечисловой meetingTypeId — 400 с ошибкой поля")
   void nonNumericMeetingTypeIdReturns400WithFieldError() throws Exception {
     mvc.perform(get("/api/slots?meetingTypeId=abc&date=2026-11-12"))
         .andExpect(status().isBadRequest())
@@ -126,6 +132,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("без date или meetingTypeId — 400 с ошибкой параметра")
   void missingDateOrMeetingTypeIdReturns400WithFieldError() throws Exception {
     mvc.perform(get("/api/slots?meetingTypeId=1"))
         .andExpect(status().isBadRequest())
@@ -137,6 +144,7 @@ class SlotsApiTest {
   }
 
   @Test
+  @DisplayName("неизвестный тип встречи — 404")
   void unknownMeetingTypeIdReturns404() throws Exception {
     mvc.perform(get("/api/slots?meetingTypeId={id}&date={date}", 999, "2026-11-12"))
         .andExpect(status().isNotFound());

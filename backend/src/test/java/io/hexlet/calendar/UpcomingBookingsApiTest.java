@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Clock;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,6 +70,7 @@ class UpcomingBookingsApiTest {
   }
 
   @Test
+  @DisplayName("пустой список — 200 и пустой массив")
   void emptyListReturns200WithEmptyArray() throws Exception {
     mvc.perform(get("/api/bookings"))
         .andExpect(status().isOk())
@@ -76,6 +78,7 @@ class UpcomingBookingsApiTest {
   }
 
   @Test
+  @DisplayName("предстоящие записи отсортированы по старту и содержат тип встречи")
   void upcomingBookingsAreSortedByStartAscendingWithNestedMeetingType() throws Exception {
     long typeId = createMeetingType("Интервью", 30);
 
@@ -100,6 +103,7 @@ class UpcomingBookingsApiTest {
   }
 
   @Test
+  @DisplayName("прошедшие записи не возвращаются, идущие и будущие — возвращаются")
   void pastBookingsAreNotReturnedWhileOngoingAndFutureOnesAre() throws Exception {
     long typeId = createMeetingType("Интервью", 30);
 

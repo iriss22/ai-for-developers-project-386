@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -76,6 +77,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("создание записи возвращает 201 и вложенный тип встречи")
   void createBookingReturns201WithNestedMeetingType() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -102,6 +104,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("запись занимает пересекающиеся слоты любого типа, стык-в-стык остаётся свободным")
   void bookingMakesOverlappingSlotsOfAnyTypeBusyAndAdjacentSlotsStayFree() throws Exception {
     long type60 = createMeetingType("Интервью", 60);
     long type15 = createMeetingType("Экспресс-разбор", 15);
@@ -141,6 +144,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("пересекающаяся запись — 409, стык-в-стык — разрешена")
   void secondBookingOnOverlappingIntervalReturns409WhileAdjacentIsAllowed() throws Exception {
     long type60 = createMeetingType("Интервью", 60);
     long type15 = createMeetingType("Экспресс-разбор", 15);
@@ -159,6 +163,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("два параллельных бронирования одного слота: ровно один 201 и один 409")
   void twoParallelBookingsOnSameSlotYieldExactlyOne201AndOne409() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -193,6 +198,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("старт вне сетки 15 минут — 400 с ошибкой start")
   void bookingStartOffTheQuarterHourGridReturns400WithStartError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -202,6 +208,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("слот за границами 9:00–18:00 — 400 с ошибкой start")
   void bookingSlotOutsideDayBoundsReturns400WithStartError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -221,6 +228,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("дата вне окна записи — 400 с ошибкой start")
   void bookingDateOutsideBookingWindowReturns400WithStartError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -239,6 +247,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("прошедшее время — 400 с ошибкой start")
   void bookingStartInThePastReturns400WithStartError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -254,12 +263,14 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("неизвестный тип встречи — 404")
   void bookingWithUnknownMeetingTypeIdReturns404() throws Exception {
     book(999, "2026-11-12T10:00:00+03:00", "Иван Петров", "ivan@example.com")
         .andExpect(status().isNotFound());
   }
 
   @Test
+  @DisplayName("битый JSON — 400 с errors")
   void malformedJsonBodyReturns400WithErrors() throws Exception {
     mvc.perform(post("/api/bookings").contentType(MediaType.APPLICATION_JSON).content("{"))
         .andExpect(status().isBadRequest())
@@ -267,6 +278,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("неверный тип поля в теле — 400 с ошибкой этого поля")
   void wrongFieldTypeInBodyReturns400WithFieldError() throws Exception {
     mvc.perform(
             post("/api/bookings")
@@ -281,6 +293,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("пустое имя гостя — 400 с ошибкой guestName")
   void bookingWithBlankNameReturns400WithGuestNameError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -290,6 +303,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("имя гостя длиннее 100 символов — 400 с ошибкой guestName")
   void bookingWithTooLongNameReturns400WithGuestNameError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -299,6 +313,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("некорректный или отсутствующий email — 400 с ошибкой guestEmail")
   void bookingWithMalformedOrMissingEmailReturns400WithGuestEmailError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
@@ -325,6 +340,7 @@ class BookingApiTest {
   }
 
   @Test
+  @DisplayName("заметка длиннее 1000 символов — 400 с ошибкой note")
   void bookingWithTooLongNoteReturns400WithNoteError() throws Exception {
     long typeId = createMeetingType("Интервью", 60);
 
