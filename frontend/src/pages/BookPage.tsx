@@ -52,6 +52,9 @@ function BookPage() {
 
   const selectType = useCallback((type: MeetingType) => {
     setSelectedType(type)
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setSlotTaken(false)
     setStep('slots')
   }, [])
 
@@ -89,6 +92,7 @@ function BookPage() {
         start={selectedSlot}
         onBooked={handleBooked}
         onConflict={handleConflict}
+        onBack={() => setStep('slots')}
       />
     )
   } else if (step === 'slots' && selectedType) {
@@ -100,6 +104,7 @@ function BookPage() {
         onSelectDate={selectDate}
         onSelectSlot={selectSlot}
         onContinue={() => setStep('form')}
+        onBack={() => setStep('types')}
         reloadToken={slotsReloadToken}
         slotTaken={slotTaken}
       />

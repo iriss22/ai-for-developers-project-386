@@ -192,6 +192,15 @@ describe('Мастер записи: шаг 2 — календарь и слот
     expect(screen.getByLabelText('Заметка')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Забронировать' })).toBeEnabled()
   })
+  it('возвращает кнопкой «Назад» к выбору типа события', async () => {
+    await goToCalendarStep()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Назад' }))
+
+    expect(await screen.findByRole('heading', { name: 'Выберите тип события' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Интервью/ })).toBeInTheDocument()
+    expect(screen.queryByText('Календарь')).not.toBeInTheDocument()
+  })
 })
 
 describe('Мастер записи: шаги 3–4 — форма и подтверждение', () => {
@@ -223,6 +232,16 @@ describe('Мастер записи: шаги 3–4 — форма и подтв
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } })
     fireEvent.change(screen.getByLabelText('Заметка'), { target: { value: note } })
   }
+
+  it('возвращает кнопкой «Назад» с формы к выбору слота', async () => {
+    await goToFormStep()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Назад' }))
+
+    expect(await screen.findByText('Календарь')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Имя')).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '09:00' })).toBeInTheDocument()
+  })
 
   it('проводит гостя от формы до экрана подтверждения с названием, датой и временем', async () => {
     let capturedBody: unknown

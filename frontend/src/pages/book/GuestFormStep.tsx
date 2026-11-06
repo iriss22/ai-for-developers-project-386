@@ -1,4 +1,4 @@
-import { Alert, Button, Stack, Text, Textarea, TextInput } from '@mantine/core'
+import { Alert, Button, Group, Stack, Text, Textarea, TextInput } from '@mantine/core'
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../../api/meetingTypes.ts'
 import { createBooking, type Booking } from '../../api/bookings.ts'
@@ -11,12 +11,13 @@ type GuestFormStepProps = {
   start: string
   onBooked: (booking: Booking) => void
   onConflict: () => void
+  onBack: () => void
 }
 
 // То же правило, что EMAIL_PATTERN на бэкенде (BookingController): local@domain.tld без пробелов
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function GuestFormStep({ meetingType, start, onBooked, onConflict }: GuestFormStepProps) {
+function GuestFormStep({ meetingType, start, onBooked, onConflict, onBack }: GuestFormStepProps) {
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [note, setNote] = useState('')
@@ -95,7 +96,12 @@ function GuestFormStep({ meetingType, start, onBooked, onConflict }: GuestFormSt
             error={errors.note}
           />
           {submitError && <Alert color="red" title="Не удалось забронировать время" />}
-          <Button type="submit">Забронировать</Button>
+          <Group>
+            <Button variant="default" onClick={onBack}>
+              Назад
+            </Button>
+            <Button type="submit">Забронировать</Button>
+          </Group>
         </Stack>
       </form>
     </Stack>

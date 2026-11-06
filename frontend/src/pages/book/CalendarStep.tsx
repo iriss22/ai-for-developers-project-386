@@ -14,6 +14,7 @@ type CalendarStepProps = {
   onSelectDate: (date: string) => void
   onSelectSlot: (slot: string) => void
   onContinue: () => void
+  onBack: () => void
   // Увеличивается при возврате на шаг после гонки (409): слоты перезапрашиваются
   reloadToken: number
   // Показать сообщение о проигранной гонке за слот
@@ -27,6 +28,7 @@ function CalendarStep({
   onSelectDate,
   onSelectSlot,
   onContinue,
+  onBack,
   reloadToken,
   slotTaken,
 }: CalendarStepProps) {
@@ -130,9 +132,14 @@ function CalendarStep({
           <Text size="sm">
             {selectedSlot ? `${slotTime(selectedSlot)} (${OWNER_TIME_ZONE})` : '—'}
           </Text>
-          <Button mt="md" disabled={selectedSlot === null} onClick={onContinue}>
-            Продолжить
-          </Button>
+          <Group mt="md" grow>
+            <Button variant="default" onClick={onBack}>
+              Назад
+            </Button>
+            <Button disabled={selectedSlot === null} onClick={onContinue}>
+              Продолжить
+            </Button>
+          </Group>
         </Stack>
       </Card>
       <Stack gap="lg" style={{ flex: 1 }}>
