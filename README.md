@@ -78,9 +78,6 @@ mise run audit   # известные уязвимости в зависимос
 Проверка бэкенда:
 
 ```bash
-curl http://localhost:8080/
-# Greetings from Spring Boot!
-
 curl http://localhost:8080/actuator/health
 # {"groups":["liveness","readiness"],"status":"UP"}
 ```

@@ -25,8 +25,8 @@ mise run audit   # OSV-Scanner, не входит в check
 Один тест:
 
 ```bash
-cd backend && ./mvnw -q test -Dtest=HelloControllerTest            # класс
-cd backend && ./mvnw -q test -Dtest='HelloControllerTest#index*'   # метод
+cd backend && ./mvnw -q test -Dtest=SlotsApiTest                     # класс
+cd backend && ./mvnw -q test -Dtest='SlotsApiTest#unknown*'          # метод
 cd frontend && npx vitest run src/App.test.tsx                     # файл
 cd frontend && npx vitest run -t 'название теста'                  # по имени
 ```
