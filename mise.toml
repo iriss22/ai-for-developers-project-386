@@ -13,6 +13,9 @@ typos = "1.51.1"
 rumdl = "0.3.2"
 jactionlint = "2.4.0"
 shellcheck = "0.11.0"
+# ответы живого сервера по контракту (test:contract); uv ставит Python-инструменты из pypi:
+uv = "0.13.6"
+"pypi:schemathesis" = "4.33.1"
 # известные уязвимости в зависимостях (запускается по расписанию, не входит в check)
 osv-scanner = "2.7.0"
 
@@ -51,7 +54,7 @@ run = "npx playwright install --with-deps chromium"
 # ---------- проверки ----------
 
 [tasks.check]
-description = "Все проверки: генерация, линтеры, типы, тесты, сборка, e2e. Эту же команду запускает CI"
+description = "Все проверки: генерация, линтеры, типы, тесты, сборка, контракт, e2e. Эту же команду запускает CI"
 # последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/;
 # test:e2e нужен собранный jar и собранный фронтенд, поэтому идёт после build
 run = [
@@ -59,6 +62,7 @@ run = [
   { task = "lint" },
   { task = "test" },
   { task = "build" },
+  { task = "test:contract" },
   { task = "test:e2e" },
 ]
 
@@ -117,6 +121,36 @@ run = "npm test"
 [tasks."test:backend"]
 dir = "backend"
 run = "./mvnw -B -q test"
+
+[tasks."test:contract"]
+description = "Schemathesis сверяет ответы живого сервера (собранный jar) с contract/openapi.yaml"
+depends = ["build:backend"]
+# Свежий процесс на свободном порту (не 8080 из dev и не 8099 из e2e) с пустым хранилищем.
+# positive_data_acceptance исключена: она ждёт 2xx на любой валидный по схеме запрос, а бизнес-
+# правила (слот в 9:00–18:00 и в окне записи, уникальное название, свободный интервал) схема не
+# выражает, и сервер законно отвечает на них 400/404/409. Остальные проверки (статусы, Content-Type,
+# схемы ответов, отказ на невалидные данные, отсутствие 5xx) включены все.
+# --generation-deterministic: одинаковые запросы при каждом запуске, check не мигает.
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+port=8098
+jar=$(ls backend/target/*.jar | grep -v -- '-sources.jar$' | head -n1)
+PORT=$port java -jar "$jar" > backend/target/test-contract-server.log 2>&1 &
+server=$!
+trap 'kill "$server" 2>/dev/null || true' EXIT
+for _ in $(seq 60); do
+  if curl -sf "http://localhost:$port/actuator/health" > /dev/null; then break; fi
+  if ! kill -0 "$server" 2>/dev/null; then
+    echo "Сервер не запустился, лог: backend/target/test-contract-server.log" >&2
+    exit 1
+  fi
+  sleep 1
+done
+schemathesis run contract/openapi.yaml --url "http://localhost:$port" \
+  --checks all --exclude-checks positive_data_acceptance \
+  --generation-deterministic --max-examples 100
+'''
 
 [tasks."test:e2e"]
 description = "Playwright против собранного бэкенда (jar) и собранного фронтенда"
