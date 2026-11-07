@@ -8,29 +8,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Учебный проект Хекслета «Календарь звонков»: сервис бронирования встреч. Монорепозиторий из двух приложений: `backend/` (Java 25, Spring Boot 4.1, Maven Wrapper, пакет `io.hexlet.calendar`) и `frontend/` (React 19, TypeScript, Vite, Mantine, Vitest). Сейчас это каркас: целевой пользовательский сценарий (типы событий в админке, выбор слота гостем, проверка занятости, список встреч владельца) описан в конце `README.md`, и на него ориентируются автотесты Хекслета.
 
-## Команды
-
-Все инструменты и их версии ставит mise (`mise.toml`), задачи проекта тоже в нём (`mise tasks`).
-
-```bash
-mise install && mise run setup  # один раз: инструменты, npm-зависимости, git-хуки hk
-mise run dev     # бэкенд :8080 и фронтенд :5173 параллельно
-mise run check   # всё: hk check --all (линтеры), тесты, сборка — то же, что в CI
-mise run fix     # автоисправления (Spotless, oxfmt, пробелы, Markdown)
-mise run lint | test | build
-mise run test:frontend | test:backend
-mise run audit   # OSV-Scanner, не входит в check
-```
-
-Один тест:
-
-```bash
-cd backend && ./mvnw -q test -Dtest=SlotsApiTest                     # класс
-cd backend && ./mvnw -q test -Dtest='SlotsApiTest#unknown*'          # метод
-cd frontend && npx vitest run src/App.test.tsx                     # файл
-cd frontend && npx vitest run -t 'название теста'                  # по имени
-```
-
 ## Архитектура и связки, которые неочевидны
 
 - **Фронтенд ↔ бэкенд.** В dev Vite проксирует `/api/*` на `http://localhost:8080` (`frontend/vite.config.ts`), поэтому фронтенд вызывает `fetch('/api/...')` без CORS. Новые REST-эндпоинты бэкенда размещайте под `/api`, иначе прокси их не увидит.
@@ -40,19 +17,3 @@ cd frontend && npx vitest run -t 'название теста'                  
 - **Maven-шаги в `check` идут последовательно**, потому что пишут в общий `backend/target/`.
 - **commitlint** ставится через корневой `package.json` (только инструменты репозитория, не код приложения).
 - При добавлении нового lockfile впишите его в задачу `audit` в `mise.toml`; при обновлении hk версия меняется и в `mise.toml`, и в URL в `hk.pkl`.
-
-Открытые задачи по тулчейну — в `TODO.md`, история настройки проверок — в `0_quality-gates.md`.
-
-## Agent skills
-
-### Issue tracker
-
-Issues и спеки живут в GitHub Issues этого репозитория, операции — через `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Дефолтный словарь из пяти ролей: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `GLOSSARY.md` + `docs/adr/` в корне репозитория. See `docs/agents/domain.md`.
