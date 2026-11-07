@@ -17,5 +17,3 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Maven-шаги в `check` идут последовательно**, потому что пишут в общий `backend/target/`.
 - **commitlint** ставится через корневой `package.json` (только инструменты репозитория, не код приложения).
 - При добавлении нового lockfile впишите его в задачу `audit` в `mise.toml`; при обновлении hk версия меняется и в `mise.toml`, и в URL в `hk.pkl`.
-
-Открытые задачи по тулчейну — в `TODO.md`, история настройки проверок — в `0_quality-gates.md`.
