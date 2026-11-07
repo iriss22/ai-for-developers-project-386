@@ -104,14 +104,15 @@ function CalendarStep({
           <Text size="sm">
             {selectedSlot ? `${slotTime(selectedSlot)} (${OWNER_TIME_ZONE})` : '—'}
           </Text>
-          <Group mt="md" grow>
-            <Button variant="default" onClick={onBack}>
-              Назад
-            </Button>
-            <Button disabled={selectedSlot === null} onClick={onContinue}>
+          {/* Кнопки друг под другом: в карточке шириной 280 px по две в ряд «Продолжить» обрезается (#25) */}
+          <Stack mt="md" gap="xs">
+            <Button fullWidth disabled={selectedSlot === null} onClick={onContinue}>
               Продолжить
             </Button>
-          </Group>
+            <Button fullWidth variant="default" onClick={onBack}>
+              Назад
+            </Button>
+          </Stack>
         </Stack>
       </Card>
       <Stack gap="lg" style={{ flex: 1 }}>
