@@ -1,9 +1,14 @@
 import { Anchor, AppShell, Button, Group } from '@mantine/core'
-import { Link, Route, Routes } from 'react-router'
+import { Link, Route, Routes, useLocation } from 'react-router'
 import HomePage from './pages/HomePage.tsx'
-import StubPage from './pages/StubPage.tsx'
+import BookPage from './pages/BookPage.tsx'
+import AdminPage from './pages/AdminPage.tsx'
 
 function App() {
+  // Каждый переход на /book (в том числе по «Записаться» со страницы записи) даёт новый
+  // location.key: мастер записи монтируется заново и начинается с выбора типа события
+  const location = useLocation()
+
   return (
     <AppShell header={{ height: 60 }}>
       <AppShell.Header>
@@ -24,8 +29,8 @@ function App() {
       <AppShell.Main>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/book" element={<StubPage title="Запись на встречу" />} />
-          <Route path="/admin" element={<StubPage title="Админка" />} />
+          <Route path="/book" element={<BookPage key={location.key} />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

@@ -28,25 +28,38 @@ depends = ["deps"]
 run = "hk install --mise"
 
 [tasks.deps]
-description = "Установить зависимости: инструменты репозитория (commitlint) и фронтенд"
-depends = ["deps:root", "deps:frontend"]
+description = "Установить зависимости: инструменты репозитория (commitlint), контракт, фронтенд, браузер Playwright"
+depends = ["deps:root", "deps:contract", "deps:frontend", "deps:e2e"]
 
 [tasks."deps:root"]
+run = "npm ci"
+
+[tasks."deps:contract"]
+dir = "contract"
 run = "npm ci"
 
 [tasks."deps:frontend"]
 dir = "frontend"
 run = "npm ci"
 
+[tasks."deps:e2e"]
+description = "Браузер для Playwright (test:e2e); --with-deps ставит системные зависимости в CI"
+dir = "frontend"
+depends = ["deps:frontend"]
+run = "npx playwright install --with-deps chromium"
+
 # ---------- проверки ----------
 
 [tasks.check]
-description = "Все проверки: линтеры, типы, тесты, сборка. Эту же команду запускает CI"
-# последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/
+description = "Все проверки: генерация, линтеры, типы, тесты, сборка, e2e. Эту же команду запускает CI"
+# последовательно: Maven-шаги линтеров и тесты бэкенда пишут в один каталог target/;
+# test:e2e нужен собранный jar и собранный фронтенд, поэтому идёт после build
 run = [
+  { task = "generate:check" },
   { task = "lint" },
   { task = "test" },
   { task = "build" },
+  { task = "test:e2e" },
 ]
 
 [tasks.lint]
@@ -64,12 +77,34 @@ description = "Известные уязвимости в зависимостя
 # пропускает SBOM, потому что backend/target/ в .gitignore. Новый lockfile добавьте сюда.
 run = [
   "cd backend && ./mvnw -q -B cyclonedx:makeBom",
-  "osv-scanner scan source backend/target/calendar.cdx.json package-lock.json frontend/package-lock.json",
+  "osv-scanner scan source backend/target/calendar.cdx.json package-lock.json contract/package-lock.json frontend/package-lock.json",
 ]
 
 [tasks.fix]
 description = "Безопасные автоисправления: форматирование, пробелы, Markdown"
 run = "hk fix --all"
+
+# ---------- генерация из контракта ----------
+
+[tasks.generate]
+description = "Генерация из TypeSpec-контракта (contract/main.tsp): OpenAPI (contract/openapi.yaml) и SDK фронтенда (frontend/src/api/generated/). Серверные интерфейсы и DTO Spring генерируются отдельно, при сборке Maven (backend/pom.xml, backend/target/generated-sources/openapi/) — руками не правятся ни те, ни эти (см. AGENTS.md)"
+dir = "contract"
+run = "npm run generate"
+
+[tasks."generate:check"]
+description = "Повторяет генерацию и падает, если сгенерированное расходится с закоммиченным"
+depends = ["generate"]
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+drift=$(git status --porcelain -- contract/openapi.yaml frontend/src/api/generated)
+if [ -n "$drift" ]; then
+  echo "Сгенерированное (contract/openapi.yaml, frontend/src/api/generated/) расходится с закоммиченным." >&2
+  echo "Запустите mise run generate и закоммитьте результат:" >&2
+  echo "$drift" >&2
+  exit 1
+fi
+'''
 
 [tasks.test]
 description = "Тесты фронтенда и бэкенда"
@@ -82,6 +117,13 @@ run = "npm test"
 [tasks."test:backend"]
 dir = "backend"
 run = "./mvnw -B -q test"
+
+[tasks."test:e2e"]
+description = "Playwright против собранного бэкенда (jar) и собранного фронтенда"
+dir = "frontend"
+# нужен собранный jar и dist/, поэтому явная зависимость, а не только порядок в check
+depends = ["build"]
+run = "npx playwright test"
 
 [tasks.build]
 description = "Production-сборка фронтенда и jar бэкенда"

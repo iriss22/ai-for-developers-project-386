@@ -28,7 +28,9 @@ local fast = new Mapping<String, Step> {
   ["oxfmt"] {
     dir = "frontend"
     glob = List("**/*.{js,cjs,mjs,ts,tsx,json}")
-    exclude = List("package-lock.json")
+    // src/api/generated — вывод mise run generate (@hey-api/openapi-ts), руками не правится
+    // и не переформатируется: см. AGENTS.md
+    exclude = List("package-lock.json", "src/api/generated/**")
     check = "npx oxfmt --check {{files}}"
     fix = "npx oxfmt {{files}}"
   }
@@ -42,6 +44,7 @@ local fast = new Mapping<String, Step> {
   ["oxlint"] {
     dir = "frontend"
     glob = List("**/*.{js,cjs,mjs,ts,tsx}")
+    exclude = List("src/api/generated/**")
     check = "npx oxlint --deny-warnings {{files}}"
     depends = List("oxfmt")
   }
