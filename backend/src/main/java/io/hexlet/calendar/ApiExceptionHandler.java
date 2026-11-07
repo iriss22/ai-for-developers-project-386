@@ -3,9 +3,11 @@ package io.hexlet.calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.tomcat.util.http.InvalidParameterException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,6 +71,22 @@ public class ApiExceptionHandler {
   public ResponseEntity<Map<String, Map<String, String>>> handleMissingParameter(
       MissingServletRequestParameterException ex) {
     return badRequest(Map.of(ex.getParameterName(), "Обязательный параметр"));
+  }
+
+  // Тело не JSON или не передано (POST без Content-Type): по контракту это ошибка валидации
+  // запроса, а не 415
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<Map<String, Map<String, String>>> handleMediaTypeNotSupported(
+      HttpMediaTypeNotSupportedException ex) {
+    return badRequest(Map.of("request", "Тело запроса должно быть JSON"));
+  }
+
+  // Tomcat не смог разобрать query-строку (параметр с пустым именем, битая кодировка). Без
+  // обработчика ответ уходил бы телом /error Spring по умолчанию, не по контракту
+  @ExceptionHandler(InvalidParameterException.class)
+  public ResponseEntity<Map<String, Map<String, String>>> handleInvalidParameter(
+      InvalidParameterException ex) {
+    return badRequest(Map.of("request", "Некорректные параметры запроса"));
   }
 
   // Общий хелпер для тела 400: {"errors": {"<поле>": "<сообщение>"}} (contract/main.tsp,
