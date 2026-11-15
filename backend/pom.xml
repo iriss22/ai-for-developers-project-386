@@ -33,7 +33,7 @@
 		<error-prone.version>2.52.0</error-prone.version>
 		<spotless.version>3.10.4</spotless.version>
 		<!-- 1.37.0 не работает со Spotless 3.10.4 и 3.11.0 (InvocationTargetException) -->
-		<google-java-format.version>1.36.1</google-java-format.version>
+		<google-java-format.version>2.0.0</google-java-format.version>
 		<cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
 		<openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
 	</properties>
