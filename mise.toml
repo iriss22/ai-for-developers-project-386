@@ -3,21 +3,21 @@
 
 [tools]
 java = "temurin-25.0.5+8.0.LTS"
-node = "24.22.2"
+node = "24.22.3"
 # git-хуки и проверки
 hk = "2.11.0"
-pkl = "0.32.2"
+pkl = "0.33.0"
 # секреты, орфография, Markdown, GitHub Actions
-betterleaks = "1.9.0"
-typos = "1.51.1"
-rumdl = "0.3.2"
-jactionlint = "2.4.0"
+betterleaks = "1.10.1"
+typos = "1.52.2"
+rumdl = "0.3.4"
+jactionlint = "2.6.0"
 shellcheck = "0.11.0"
 # ответы живого сервера по контракту (test:contract); uv ставит Python-инструменты из pypi:
-uv = "0.13.6"
-"pypi:schemathesis" = "4.33.1"
+uv = "0.13.8"
+"pypi:schemathesis" = "4.33.4"
 # известные уязвимости в зависимостях (запускается по расписанию, не входит в check)
-osv-scanner = "2.7.0"
+osv-scanner = "2.7.1"
 
 [env]
 # git-хуки hk запускают инструменты через `mise x` с версиями из этого файла
